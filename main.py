@@ -8,6 +8,7 @@ train_dataset = MNIST(download_path, train=True, download=True)
 valid_dataset = MNIST(download_path, train=False, download=True)
 
 #git test
+#git test2
 class Simple_CNN(nn.Module):
     def __init__(self):
         super(Simple_CNN, self).__init__()
