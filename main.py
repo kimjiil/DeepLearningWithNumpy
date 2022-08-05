@@ -79,7 +79,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             valid_data = valid_dataset.data.view(len(valid_dataset), 1, 28, 28).float()
             valid_label = valid_dataset.targets
-
+            torch.save()
             prediction = model(valid_data)
             torch.argmax(prediction, dim=1)
             acc = (torch.argmax(prediction, dim=1) == valid_label).float().mean()

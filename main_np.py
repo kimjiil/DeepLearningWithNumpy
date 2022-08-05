@@ -1,7 +1,7 @@
 import numpy as np
 from torchvision.datasets import MNIST
-from Np_Torch.Layer import ConvLayer_np, LinearLayer_np, ReLULayer_np, FlattenLayer_np, MaxPoolLayer_np, LogSoftMax_np
-from Np_Torch.optimizer import Adam
+from Layer_np.Layer import ConvLayer_np, LinearLayer_np, ReLULayer_np, FlattenLayer_np, MaxPoolLayer_np, LogSoftMax_np
+from Layer_np.optimizer import Adam
 
 
 download_path = "./MNIST_Datset"

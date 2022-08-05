@@ -1,2 +1,9 @@
 
 *.pyc
+*.iml
+*.xml
+*.gz
+MNIST_Datset/MNIST/raw/train-labels-idx1-ubyte
+MNIST_Datset/MNIST/raw/train-images-idx3-ubyte
+MNIST_Datset/MNIST/raw/t10k-labels-idx1-ubyte
+MNIST_Datset/MNIST/raw/t10k-images-idx3-ubyte
