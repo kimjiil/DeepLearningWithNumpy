@@ -7,7 +7,7 @@ download_path = "./MNIST_Datset"
 train_dataset = MNIST(download_path, train=True, download=True)
 valid_dataset = MNIST(download_path, train=False, download=True)
 
-
+#git test
 class Simple_CNN(nn.Module):
     def __init__(self):
         super(Simple_CNN, self).__init__()
