@@ -13,7 +13,6 @@ class myModule:
         self.op = np # default
 
     def forward_call(self, x):
-        print()
         return self.forward(x)
 
     __call__: Callable[..., Any] = forward_call
@@ -30,19 +29,36 @@ class myModule:
     def parameters(self):
         pass
 
-    def to(self, device):
+    def to(self, *args, **kargs):
         '''
         to("cuda:0") or to("cpu")
         '''
-        if "cuda" in device:
-            self._dev['id'] = int(device.split(":")[-1])
-            self._dev['device'] = device.split(":")[0]
+
+        print()
+        if len(args) > 1 or len(kargs) > 1:
+            raise "too many parameters"
+
+        if len(args) == 0 and len(kargs) == 0:
+            self._dev['id'] = 0
+            self._dev['device'] = "cuda"
             self.op = cp
             cp.cuda.Device(self._dev['id']).use()
-        else:
-            self._dev['id'] = -1
-            self._dev['device'] = device
-            self.op = np
+        # elif if "cuda" in args or "cuda" in kargs['device']:
+        #     self._dev['id'] = int(device.split(":")[-1])
+        #     self._dev['device'] = device.split(":")[0]
+        #     self.op = cp
+        #     cp.cuda.Device(self._dev['id']).use()
+        # elif device == None:
+        #     self._dev['id'] = 0
+        #     self._dev['device'] = "cuda"
+        #     self.op = cp
+        #     cp.cuda.Device(self._dev['id']).use()
+        # else:
+        #     self._dev['id'] = -1
+        #     self._dev['device'] = device
+        #     self.op = np
+
+        return self
 
     # def _ret_lib(self):
     #     if self._dev['device'] == "cpu":

@@ -27,20 +27,21 @@ class ReLU(BaseLayer):
         super(ReLU, self).__init__()
 
     def forward(self, x):
-        out = self.op.maximum(0, x)
-        return out
+        x = self.op.maximum(0, x)
+        return x
 
 
 if __name__ == "__main__":
     dev = cp.cuda.Device(1)
     print(isinstance("cpu", cp.cuda.Device))
 
-    a = ReLU()
+    a = ReLU().to("cuda:0", "test")
 
-    b = np.random.randn(3)
+    b = np.random.randn(224*224*2000)
+    b_cuda = cp.asarray(b)
 
-    c = a(b)
-
+    c = a(b_cuda)
+    c = a(b_cuda)
     print()
 
 
