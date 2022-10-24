@@ -29,35 +29,56 @@ class myModule:
     def parameters(self):
         pass
 
-    def to(self, *args, **kargs):
+    def children(self):
+        module_list = self.__dict__['_module']
+        for module_key in module_list:
+            module = module_list[module_key]
+            yield module
+
+    def to(self, *args, **kwargs):
         '''
-        to("cuda:0") or to("cpu")
+        [function call]
+        to()
+        to("cpu")
+        to("cuda:0")
+        to(device = "cpu")
+        to(device = "cuda:0")
         '''
 
-        print()
-        if len(args) > 1 or len(kargs) > 1:
-            raise "too many parameters"
+        if len(args) > 1 or len(kwargs) > 1:
+            raise "too many parameters, cpu or cuda:{}"
+        elif args:
+            param = args[0]
+        elif kwargs:
+            if "device" in kwargs:
+                param = kwargs['device']
+            else:
+                raise "unvalid parameter key"
+        else:
+            param = None
 
-        if len(args) == 0 and len(kargs) == 0:
+
+        for child in self.children():
+            child.to(*args, **kwargs)
+
+        if param == None: # call: to()
             self._dev['id'] = 0
             self._dev['device'] = "cuda"
             self.op = cp
-            cp.cuda.Device(self._dev['id']).use()
-        # elif if "cuda" in args or "cuda" in kargs['device']:
-        #     self._dev['id'] = int(device.split(":")[-1])
-        #     self._dev['device'] = device.split(":")[0]
-        #     self.op = cp
-        #     cp.cuda.Device(self._dev['id']).use()
-        # elif device == None:
-        #     self._dev['id'] = 0
-        #     self._dev['device'] = "cuda"
-        #     self.op = cp
-        #     cp.cuda.Device(self._dev['id']).use()
-        # else:
-        #     self._dev['id'] = -1
-        #     self._dev['device'] = device
-        #     self.op = np
+            # cp.cuda.Device(self._dev['id']).use()
+            cp.cuda.runtime.setDevice(self._dev['id'])
+        elif "cpu" in param: # call: to("cpu") or to(device="cpu")
+            self._dev['id'] = -1
+            self._dev['device'] = "cpu"
+            self.op = np
+        elif "cuda" in param:
+            gpu_id = int(param.split(":")[-1])
 
+            self._dev['id'] = gpu_id
+            self._dev['device'] = "cuda"
+            self.op = cp
+            # cp.cuda.Device(self._dev['id']).use()
+            cp.cuda.runtime.setDevice(self._dev['id'])
         return self
 
     # def _ret_lib(self):
@@ -71,6 +92,7 @@ class myModule:
         if isinstance(value, myModule):
             modules = self.__dict__.get("_module")
             modules[key] = value
+            object.__setattr__(self, key, value)
         else:
             object.__setattr__(self, key, value)
 
@@ -88,7 +110,11 @@ class mySequential(myModule):
         for idx, module in enumerate(args):
             self.add_module(str(idx), module)
 
-
+    def forward(self, x):
+        module = self.__dict__['_module']
+        for module_key in module:
+            x = module[module_key].forward(x)
+        return x
 ############################### test ####################################################
 
 class testModel(myModule):

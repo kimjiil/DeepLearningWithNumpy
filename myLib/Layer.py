@@ -1,5 +1,5 @@
 from typing import Callable, Any, List
-from Module import myModule
+from .Module import myModule
 import cupy as cp
 import numpy as np
 
@@ -35,14 +35,14 @@ if __name__ == "__main__":
     dev = cp.cuda.Device(1)
     print(isinstance("cpu", cp.cuda.Device))
 
-    a = ReLU().to("cuda:0", "test")
+    a = ReLU().to("cuda:0")
 
     b = np.random.randn(224*224*2000)
     b_cuda = cp.asarray(b)
 
     c = a(b_cuda)
-    c = a(b_cuda)
-    print()
+    c = a(b_cuda) # 레이어 통과할때마다 메모리먹으면 메모리 부족??
+    print(c)
 
 
 
