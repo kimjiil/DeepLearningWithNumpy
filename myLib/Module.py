@@ -3,9 +3,34 @@ from typing import Callable, Any, Tuple, DefaultDict, List
 from collections import OrderedDict
 import cupy as cp
 
+class cupyTensor:
+    def __init__(self, data):
+        self.data = data
+        self.grad_fn = None
+        self.required_grad = False
+
+    def to(self, dev):
+        if dev['device'] == "cuda":
+            cp.cuda.runtime.setDevice(dev['id'])
+            self.data = cp.asarray(self.data)
+        elif dev['device'] == "cpu":
+            self.data = cp.asnumpy(self.data)
+            cp._default_memory_pool.free_all_blocks()
+
+    def __repr__(self):
+        return f"cupyTensor: {self.data.shape}, {self.grad_fn}, {self.data}"
+
+class Parameter(cupyTensor):
+    def __init__(self, data):
+        super(Parameter, self).__init__(data)
+
+    # def __repr__(self):
+    #     return "hello parameters"
+
 class myModule:
     def __init__(self):
-        self._module = OrderedDict()
+        self._modules = OrderedDict()
+        self._parameters = OrderedDict()
 
         self._dev = dict()
         self._dev['device'] = 'cpu'  # default
@@ -18,7 +43,10 @@ class myModule:
     __call__: Callable[..., Any] = forward_call
 
     def backward(self):
-        pass
+        print("backward!!!")
+        print("backward!!!")
+        print("backward!!!")
+        print("backward!!!")
 
     def eval(self):
         pass
@@ -29,8 +57,9 @@ class myModule:
     def parameters(self):
         pass
 
+    # 현재 함수의 하위 함수를 모두 호출하기 위한 iterator
     def children(self):
-        module_list = self.__dict__['_module']
+        module_list = self.__dict__['_modules']
         for module_key in module_list:
             module = module_list[module_key]
             yield module
@@ -48,37 +77,51 @@ class myModule:
         if len(args) > 1 or len(kwargs) > 1:
             raise "too many parameters, cpu or cuda:{}"
         elif args:
-            param = args[0]
+            _args = args[0]
         elif kwargs:
             if "device" in kwargs:
-                param = kwargs['device']
+                _args = kwargs['device']
             else:
                 raise "unvalid parameter key"
         else:
-            param = None
+            _args = None
 
 
         for child in self.children():
             child.to(*args, **kwargs)
 
-        if param == None: # call: to()
+        if _args == None: # call: to()
             self._dev['id'] = 0
             self._dev['device'] = "cuda"
             self.op = cp
             # cp.cuda.Device(self._dev['id']).use()
             cp.cuda.runtime.setDevice(self._dev['id'])
-        elif "cpu" in param: # call: to("cpu") or to(device="cpu")
+
+            _parameters = self.__dict__['_parameters']
+            for _param_key in _parameters:
+                _parameters[_param_key].to(self._dev)
+
+        elif "cpu" in _args: # call: to("cpu") or to(device="cpu")
             self._dev['id'] = -1
             self._dev['device'] = "cpu"
             self.op = np
-        elif "cuda" in param:
-            gpu_id = int(param.split(":")[-1])
+
+            _parameters = self.__dict__['_parameters']
+            for _param_key in _parameters:
+                _parameters[_param_key].to(self._dev)
+
+        elif "cuda" in _args:
+            gpu_id = int(_args.split(":")[-1])
 
             self._dev['id'] = gpu_id
             self._dev['device'] = "cuda"
             self.op = cp
             # cp.cuda.Device(self._dev['id']).use()
             cp.cuda.runtime.setDevice(self._dev['id'])
+
+            _parameters = self.__dict__['_parameters']
+            for _param_key in _parameters:
+                _parameters[_param_key].to(self._dev)
         return self
 
     # def _ret_lib(self):
@@ -90,8 +133,12 @@ class myModule:
 
     def __setattr__(self, key, value):
         if isinstance(value, myModule):
-            modules = self.__dict__.get("_module")
+            modules = self.__dict__.get("_modules")
             modules[key] = value
+            object.__setattr__(self, key, value)
+        elif isinstance(value, Parameter):
+            parameters = self.__dict__.get("_parameters")
+            parameters[key] = value
             object.__setattr__(self, key, value)
         else:
             object.__setattr__(self, key, value)
@@ -100,7 +147,7 @@ class myModule:
         return
 
     def add_module(self, key, module):
-        self._module[key] = module
+        self._modules[key] = module
 
 
 class mySequential(myModule):
@@ -111,7 +158,7 @@ class mySequential(myModule):
             self.add_module(str(idx), module)
 
     def forward(self, x):
-        module = self.__dict__['_module']
+        module = self.__dict__['_modules']
         for module_key in module:
             x = module[module_key].forward(x)
         return x

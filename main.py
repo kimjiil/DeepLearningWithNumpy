@@ -9,6 +9,20 @@ valid_dataset = MNIST(download_path, train=False, download=True)
 
 #git test
 #git test2
+class test_model(nn.Module):
+    def __init__(self):
+        super(test_model, self).__init__()
+
+
+        self.layer2 = nn.Sequential(
+            nn.ReLU(),
+            nn.ReLU(),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        return self.layer2(x)
+
 class Simple_CNN(nn.Module):
     def __init__(self):
         super(Simple_CNN, self).__init__()

@@ -1,3 +1,6 @@
+def print_memory_usage():
+    print("used - ",cp._default_memory_pool.used_bytes() / 1e9, 'gb')
+    print("total - ",cp._default_memory_pool.total_bytes() / 1e9, 'gb')
 
 
 '''
@@ -15,7 +18,8 @@ sequential class는 module class에서 받아와서 module의 add_module을 실�
 '''
 
 from myLib.Module import myModule, mySequential
-from myLib.Layer import ReLU
+from myLib.Layer import ReLU, Linear
+from myLib.LossFunc import testloss
 
 import numpy as np
 import cupy as cp
@@ -26,25 +30,31 @@ class my_model(myModule):
 
         self.ReLU_seq = mySequential(
             ReLU(),
-            ReLU(),
-            ReLU()
+            Linear(in_features=224, out_features=24, bias=True)
         )
 
         print()
 
     def forward(self, x):
         x = self.ReLU_seq(x)
-
         return x
 
 model = my_model()
 model.to(device="cuda:0")
 
-b = np.random.randn(224*224*1000)
+b = np.random.randn(224, 224)
 b_cuda = cp.asarray(b)
-c = model(b_cuda)
 
-print("cuda - ", c)
+out = model(b_cuda)
+
+loss = testloss()
+loss.backward()
+
+print("main!!!")
+
+
+
+
 
 model.to("cpu")
 c = model(b)
