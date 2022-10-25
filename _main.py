@@ -48,8 +48,8 @@ b = np.transpose(a)
 
 cp_a = cupyTensor(a)
 cp_b = cupyTensor(b)
-
-cp_a + cp_b
+cp_a[:,:]
+ddd = cp_a + cp_a
 
 mul_cp_c = cp_a * cp_b
 mul_c = a * b

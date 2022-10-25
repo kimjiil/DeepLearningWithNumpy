@@ -12,6 +12,17 @@ class cupyTensor:
         self.requires_grad = False
         self.grad = None
 
+        self._oper_dict = self._create_operator_dict()
+
+    def _create_operator_dict(self):
+        temp = dict()
+        temp['add'] = operator.add
+        temp['div'] = operator.truediv
+        temp['mul'] = operator.mul
+        temp['sub'] = operator.sub
+
+        return temp
+
     def to(self, dev):
         if dev['device'] == "cuda":
             cp.cuda.runtime.setDevice(dev['id'])
@@ -26,46 +37,47 @@ class cupyTensor:
     def backward(self):
         print("tensor backward!")
 
-    class operator_function_class:
-        operator_dict = dict()
-        operator_dict['add'] = operator.add
-        def __init__(self, *args, **kwargs):
-            self._operator = args[0]
-        def __call__(self, *args, **kwargs):
-            print("call")
-
-    def operator_function_call(self, *args, **kwargs):
-        print("call!")
-
-    __add__: Callable[..., Any] = operator_function_call('add')
-
-    # def __add__(self, other):
-    #     _new_data = self.data + other.data
-    #     _new = cupyTensor(_new_data)
-    #     _new.grad_fn = "np.add()"
-    #     return _new
-
+    #slicing call
+    def __setslice__(self, i, j, sequence):
+        ...
+    #slicing call
     def __getitem__(self, item):
         self.data = self.data[item]
         return self
 
-    def __mul__(self, other):
-        _new_data = self.data * other.data
+    def operator_function_call(self, operator, other):
+        _new_data = self._oper_dict[operator](self.data, other.data)
         _new = cupyTensor(_new_data)
-        _new.grad_fn = "np.mul()"
+        _new.grad_fn = f"np.{operator}()"
         return _new
+
+    def __add__(self, other):
+        # _new_data = self.data + other.data
+        # _new = cupyTensor(_new_data)
+        # _new.grad_fn = "np.add()"
+        # return _new
+        return self.operator_function_call('add', other)
+
+    def __mul__(self, other):
+        # _new_data = self.data * other.data
+        # _new = cupyTensor(_new_data)
+        # _new.grad_fn = "np.mul()"
+        # return _new
+        return self.operator_function_call('mul', other)
 
     def __truediv__(self, other):
-        _new_data = self.data / other.data
-        _new = cupyTensor(_new_data)
-        _new.grad_fn = "np.div()"
-        return _new
+        # _new_data = self.data / other.data
+        # _new = cupyTensor(_new_data)
+        # _new.grad_fn = "np.div()"
+        # return _new
+        return self.operator_function_call('div', other)
 
     def __sub__(self, other):
-        _new_data = self.data - other.data
-        _new = cupyTensor(_new_data)
-        _new.grad_fn = "np.sub()"
-        return _new
+        # _new_data = self.data - other.data
+        # _new = cupyTensor(_new_data)
+        # _new.grad_fn = "np.sub()"
+        # return _new
+        return self.operator_function_call('sub', other)
 
 class Parameter(cupyTensor):
     def __init__(self, data):
