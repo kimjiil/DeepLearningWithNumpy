@@ -3,11 +3,14 @@ from typing import Callable, Any, Tuple, DefaultDict, List
 from collections import OrderedDict
 import cupy as cp
 
+import operator
+
 class cupyTensor:
     def __init__(self, data):
         self.data = data
         self.grad_fn = None
-        self.required_grad = False
+        self.requires_grad = False
+        self.grad = None
 
     def to(self, dev):
         if dev['device'] == "cuda":
@@ -18,7 +21,51 @@ class cupyTensor:
             cp._default_memory_pool.free_all_blocks()
 
     def __repr__(self):
-        return f"cupyTensor: {self.data.shape}, {self.grad_fn}, {self.data}"
+        return f"cupyTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
+
+    def backward(self):
+        print("tensor backward!")
+
+    class operator_function_class:
+        operator_dict = dict()
+        operator_dict['add'] = operator.add
+        def __init__(self, *args, **kwargs):
+            self._operator = args[0]
+        def __call__(self, *args, **kwargs):
+            print("call")
+
+    def operator_function_call(self, *args, **kwargs):
+        print("call!")
+
+    __add__: Callable[..., Any] = operator_function_call('add')
+
+    # def __add__(self, other):
+    #     _new_data = self.data + other.data
+    #     _new = cupyTensor(_new_data)
+    #     _new.grad_fn = "np.add()"
+    #     return _new
+
+    def __getitem__(self, item):
+        self.data = self.data[item]
+        return self
+
+    def __mul__(self, other):
+        _new_data = self.data * other.data
+        _new = cupyTensor(_new_data)
+        _new.grad_fn = "np.mul()"
+        return _new
+
+    def __truediv__(self, other):
+        _new_data = self.data / other.data
+        _new = cupyTensor(_new_data)
+        _new.grad_fn = "np.div()"
+        return _new
+
+    def __sub__(self, other):
+        _new_data = self.data - other.data
+        _new = cupyTensor(_new_data)
+        _new.grad_fn = "np.sub()"
+        return _new
 
 class Parameter(cupyTensor):
     def __init__(self, data):

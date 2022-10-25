@@ -17,7 +17,7 @@ sequential class는 module class에서 받아와서 module의 add_module을 실�
 
 '''
 
-from myLib.Module import myModule, mySequential
+from myLib.Module import myModule, mySequential, cupyTensor
 from myLib.Layer import ReLU, Linear
 from myLib.LossFunc import testloss
 
@@ -29,8 +29,8 @@ class my_model(myModule):
         super(my_model, self).__init__()
 
         self.ReLU_seq = mySequential(
+            Linear(in_features=20, out_features=10, bias=True),
             ReLU(),
-            Linear(in_features=224, out_features=24, bias=True)
         )
 
         print()
@@ -42,12 +42,46 @@ class my_model(myModule):
 model = my_model()
 model.to(device="cuda:0")
 
-b = np.random.randn(224, 224)
-b_cuda = cp.asarray(b)
+############
+a = np.array([[1,2,3,4,5]])
+b = np.transpose(a)
 
-out = model(b_cuda)
+cp_a = cupyTensor(a)
+cp_b = cupyTensor(b)
 
-loss = testloss()
+cp_a + cp_b
+
+mul_cp_c = cp_a * cp_b
+mul_c = a * b
+mul_cp_d = cp_b * cp_a
+mul_d = b * a
+mul_cp_e = cp_a * cp_a
+mul_e = a * a
+
+div_cp_c = cp_a / cp_b
+div_cp_d = cp_b / cp_a
+div_cp_e = cp_a / cp_a
+print()
+
+##########
+
+
+input = np.random.randn(5, 20)
+input_cuda = cp.asarray(input)
+
+
+label = np.zeros((5, 10))
+label[0, 5] = 1
+label[1, 6] = 1
+label[2, 3] = 1
+label[3, 4] = 1
+label[4, 8] = 1
+label_cuda = cp.asarray(label)
+pred = model(input_cuda)
+
+
+criterion = testloss()
+loss = criterion(pred, label_cuda)
 loss.backward()
 
 print("main!!!")
