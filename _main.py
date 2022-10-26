@@ -24,72 +24,91 @@ from myLib.LossFunc import testloss
 import numpy as np
 import cupy as cp
 
-class my_model(myModule):
-    def __init__(self):
-        super(my_model, self).__init__()
+def test00():
+    class my_model(myModule):
+        def __init__(self):
+            super(my_model, self).__init__()
 
-        self.ReLU_seq = mySequential(
-            Linear(in_features=20, out_features=10, bias=True),
-            ReLU(),
-        )
+            self.ReLU_seq = mySequential(
+                Linear(in_features=20, out_features=10, bias=True),
+                ReLU(),
+            )
 
-        print()
+            print()
 
-    def forward(self, x):
-        x = self.ReLU_seq(x)
-        return x
+        def forward(self, x):
+            x = self.ReLU_seq(x)
+            return x
 
-model = my_model()
-model.to(device="cuda:0")
+    model = my_model()
+    model.to(device="cuda:0")
 
-############
-a = np.array([[1,2,3,4,5]])
-b = np.transpose(a)
+    # ############
+    # a = np.array([[1,2,3,4,5]])
+    # b = np.transpose(a)
+    #
+    # cp_a = cupyTensor(a)
+    # cp_b = cupyTensor(b)
+    # cp_a[:,:]
+    # ddd = cp_a + cp_a
+    #
+    # mul_cp_c = cp_a * cp_b
+    # mul_c = a * b
+    # mul_cp_d = cp_b * cp_a
+    # mul_d = b * a
+    # mul_cp_e = cp_a * cp_a
+    # mul_e = a * a
+    #
+    # div_cp_c = cp_a / cp_b
+    # div_cp_d = cp_b / cp_a
+    # div_cp_e = cp_a / cp_a
+    # print()
+    #
+    # ##########
+    import operator
 
-cp_a = cupyTensor(a)
-cp_b = cupyTensor(b)
-cp_a[:,:]
-ddd = cp_a + cp_a
+    input = np.random.randn(5, 20)
+    np.sum(input)
+    # ff = operator.pow(input, 2)
+    # ff2 = input ** 2
+    # input_cuda = cp.asarray(input)
+    input_cuda = cupyTensor(input).to('cuda:0')
 
-mul_cp_c = cp_a * cp_b
-mul_c = a * b
-mul_cp_d = cp_b * cp_a
-mul_d = b * a
-mul_cp_e = cp_a * cp_a
-mul_e = a * a
-
-div_cp_c = cp_a / cp_b
-div_cp_d = cp_b / cp_a
-div_cp_e = cp_a / cp_a
-print()
-
-##########
-
-
-input = np.random.randn(5, 20)
-input_cuda = cp.asarray(input)
-
-
-label = np.zeros((5, 10))
-label[0, 5] = 1
-label[1, 6] = 1
-label[2, 3] = 1
-label[3, 4] = 1
-label[4, 8] = 1
-label_cuda = cp.asarray(label)
-pred = model(input_cuda)
-
-
-criterion = testloss()
-loss = criterion(pred, label_cuda)
-loss.backward()
-
-print("main!!!")
+    label = np.zeros((5, 10))
+    label[0, 5] = 1
+    label[1, 6] = 1
+    label[2, 3] = 1
+    label[3, 4] = 1
+    label[4, 8] = 1
+    # label_cuda = cp.asarray(label)
+    label_cuda = cupyTensor(label).to("cuda:0")
+    pred = model(input_cuda)
 
 
+    criterion = testloss()
+    loss = criterion(pred, label_cuda)
+    loss.backward()
 
 
+def test01():
+    from myLib.Layer import operator_test_layer
+    class testModel(myModule):
+        def __init__(self):
+            super(testModel, self).__init__()
 
-model.to("cpu")
-c = model(b)
-print("cpu - " , c)
+            self.layer1 = mySequential(
+                operator_test_layer()
+            )
+
+        def forward(self, x):
+            x = self.layer1(x)
+            return x
+
+
+    temp = cupyTensor(np.array([[1, 2], [4, 5]])).to('cuda:0')
+    # temp = temp[:, :, np.newaxis]
+    temp[0,0] = 3.5
+    test = testModel()#.to('cuda:0')
+    test(temp)
+
+test01()

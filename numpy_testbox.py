@@ -50,47 +50,11 @@ from collections import OrderedDict
 import cupy as cp
 
 
+from myLib.Module import cupyTensor
 
-class cupyTensor(np.ndarray):
-    def __init__(self, data: np.ndarray):
-        ...
-        # super().__array__(np.array(data))
-        # self.data = data
-        # self.grad_fn = 'init'
-        # self.requires_grad = 'init'
-        # self.grad = 'init'
-        # return super().__new__(array=data)
+a = np.array([[2, 2],
+              [4, 3]])
+b = cupyTensor([2, 1])
 
-    def __new__(cls, input_array: list):
-        print('__mynew__')
-        obj = np.asarray(input_array).view(cls)
-        obj.grad = 'new'
-        obj.grad_fn = 'new'
-        obj.requires_grad = 'new'
-        # obj.data = input_array
-        return obj
+n
 
-    def __array_finalize__(self, obj):
-        if obj is None: return
-
-        self.grad = getattr(obj, 'grad', None)
-        self.grad_fn = getattr(obj, 'grad_fn', None)
-        self.requires_grad = getattr(obj, 'requires_grad', False)
-        # self.data = getattr(obj, 'data', None)
-    def __repr__(self):
-        return f"cupyTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
-
-    def backward(self):
-        print("tensor backward!")
-
-d = np.array([[2,2],[4,3]])
-a = cupyTensor([2,1])
-a.grad = [34234234234]
-a.backward()
-b = cupyTensor(np.array([[1,2],[3,4]]))
-
-a_cuda = cp.array(a)
-c = a + b
-print(c)
-
-print(a)

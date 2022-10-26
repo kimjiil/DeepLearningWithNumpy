@@ -4,6 +4,84 @@ from collections import OrderedDict
 import cupy as cp
 
 import operator
+from functools import wraps
+
+decorator_active = True
+
+def print_decorator(type, function_string, active):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if active:
+                print(f"{type} class {function_string} call!!")
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+class op:
+    def __init__(self):
+        self._op = np #defualt
+        self.random = self._random(self._op.random)
+
+    def set_op(self, op):
+        self._op = op
+    ###### original function end #####################
+
+
+    # ↓ numpy and cupy class wrapper
+    class _random:
+        def __init__(self, op):
+            self._op = op
+
+        def uniform(self, low=0.0, high=1.0, size=None):
+            return self._op.uniform(low=low, high=high, size=size)
+
+    # ↓ numpy and cupy function wrapper
+    def maximum(self, x1, x2, *args, **kwargs):
+        if isinstance(x1, cupyTensor):
+            temp_x1 = x1.data
+        else:
+            temp_x1 = x1
+
+        if isinstance(x2, cupyTensor):
+            temp_x2 = x2.data
+        else:
+            temp_x2 = x2
+        new_temp = self._op.maximum(temp_x1, temp_x2, *args, **kwargs)
+        # new_temp = self._op.maximum(x1, x2, *args, **kwargs)
+        new = cupyTensor(new_temp)
+        new.grad_fn = "<opertaion.maximum>"
+        return new
+        # return self._op.maximum(x1, x2, *args, **kwargs)
+
+    def where(self, *args, **kwargs):
+        ...
+
+    def dot(self, *args,  **kwargs):
+        return self._op.dot(*args,  **kwargs)
+
+    @print_decorator("operator", "mean", decorator_active)
+    def mean(self, *args, **kwargs):
+        obj = self._op.mean(*args, **kwargs)
+        return obj
+
+    @print_decorator("operator", "sum", decorator_active)
+    def sum(self, *args, **kwargs):
+        obj = self._op.sum(*args, **kwargs)
+        return obj
+
+    @print_decorator("operator", "exp", decorator_active)
+    def exp(self, *args, **kwargs):
+        obj = self._op.exp(*args, **kwargs)
+        return obj
+
+    def reshape(self, *args, **kwargs):
+        obj = self._op.reshape(*args, **kwargs)
+        return obj
+
+    def log(self, *args, **kwargs):
+        obj = self._op.log(*args, **kwargs)
+        return obj
 
 class cupyTensor:
     def __init__(self, data):
@@ -12,24 +90,19 @@ class cupyTensor:
         self.requires_grad = False
         self.grad = None
 
-        self._oper_dict = self._create_operator_dict()
-
-    def _create_operator_dict(self):
-        temp = dict()
-        temp['add'] = operator.add
-        temp['div'] = operator.truediv
-        temp['mul'] = operator.mul
-        temp['sub'] = operator.sub
-
-        return temp
+        self._op = np
 
     def to(self, dev):
-        if dev['device'] == "cuda":
-            cp.cuda.runtime.setDevice(dev['id'])
+        if "cuda" in dev:
+            cp.cuda.runtime.setDevice(int(dev.split(":")[-1]))
+            self._op = cp
             self.data = cp.asarray(self.data)
-        elif dev['device'] == "cpu":
+        elif "cpu" in dev:
+            self._op = np
             self.data = cp.asnumpy(self.data)
             cp._default_memory_pool.free_all_blocks()
+
+        return self
 
     def __repr__(self):
         return f"cupyTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
@@ -40,44 +113,121 @@ class cupyTensor:
     #slicing call
     def __setslice__(self, i, j, sequence):
         ...
+
     #slicing call
     def __getitem__(self, item):
         self.data = self.data[item]
         return self
 
+    def __setitem__(self, key, value):
+        self.data[key] = value
+        return self
+
+
     def operator_function_call(self, operator, other):
-        _new_data = self._oper_dict[operator](self.data, other.data)
+        if isinstance(other, cupyTensor):
+            temp_data = other.data
+        else:
+            temp_data = other
+
+        _new_data = operator(self.data, temp_data)
         _new = cupyTensor(_new_data)
-        _new.grad_fn = f"np.{operator}()"
+        _new.grad_fn = f"{operator}"
+        return _new
+
+    def unary_operator_function_call(self, *args, **kwargs):
+        # args[0]은 항상 operator로 들어옴
+        print("unary operator function call!!")
+        operator = args[0]
+
+        _new_data = operator(self.data, *args[1:], **kwargs)
+        # if not isinstance(type(_new_data), np.ndarray):
+        #     _new_data = np.array
+        _new = cupyTensor(_new_data)
+        _new.grad_fn = f"{operator}"
         return _new
 
     def __add__(self, other):
-        # _new_data = self.data + other.data
-        # _new = cupyTensor(_new_data)
-        # _new.grad_fn = "np.add()"
-        # return _new
-        return self.operator_function_call('add', other)
+        return self.operator_function_call(operator.add, other=other)
 
     def __mul__(self, other):
-        # _new_data = self.data * other.data
-        # _new = cupyTensor(_new_data)
-        # _new.grad_fn = "np.mul()"
-        # return _new
-        return self.operator_function_call('mul', other)
+        return self.operator_function_call(operator.mul, other=other)
 
     def __truediv__(self, other):
-        # _new_data = self.data / other.data
-        # _new = cupyTensor(_new_data)
-        # _new.grad_fn = "np.div()"
-        # return _new
-        return self.operator_function_call('div', other)
+        return self.operator_function_call(operator.truediv, other=other)
 
     def __sub__(self, other):
-        # _new_data = self.data - other.data
-        # _new = cupyTensor(_new_data)
-        # _new.grad_fn = "np.sub()"
-        # return _new
-        return self.operator_function_call('sub', other)
+        return self.operator_function_call(operator.sub, other=other)
+
+    def __pow__(self, power, modulo=None):
+        return self.operator_function_call(operator.pow, other=power)
+
+    # ==
+    def __eq__(self, other):
+        return self.operator_function_call(operator.eq, other=other)
+
+    # <
+    def __lt__(self, other):
+        return self.operator_function_call(operator.lt, other=other)
+
+    # <=
+    def __le__(self, other):
+        return self.operator_function_call(operator.le, other=other)
+
+    # !=
+    def __ne__(self, other):
+        return self.operator_function_call(operator.ne, other=other)
+
+    # >
+    def __gt__(self, other):
+        return self.operator_function_call(operator.gt, other=other)
+
+    # >=
+    def __ge__(self, other):
+        return self.operator_function_call(operator.ge, other=other)
+
+    # +=
+    def __iadd__(self, other):
+        return self.operator_function_call(operator.iadd, other=other)
+
+    # -=
+    def __isub__(self, other):
+        return self.operator_function_call(operator.isub, other=other)
+
+    # *=
+    def __imul__(self, other):
+        return self.operator_function_call(operator.imul, other=other)
+
+    # /=
+    def __itruediv__(self, other):
+        return self.operator_function_call(operator.itruediv, other=other)
+
+    # -(obj)
+    def __neg__(self):
+        return self.unary_operator_function_call(operator.neg)
+
+    # +(obj)
+    def __pos__(self):
+        return self.unary_operator_function_call(operator.pos)
+
+    def dot(self, b, out):
+        return self.operator_function_call(self._op.dot, other=b)
+
+    def sum(self, *args, **kwargs):
+        return self.unary_operator_function_call(self._op.sum, *args, **kwargs)
+
+    def mean(self, *args, **kwargs):
+        # print("cupyTensor mean call!!")
+        return self.unary_operator_function_call(self._op.mean, *args, **kwargs)
+
+    def exp(self, *args, **kwargs):
+        return self.unary_operator_function_call(self._op.exp, *args, **kwargs)
+
+    def reshape(self, *args, **kwargs):
+        return self.unary_operator_function_call(self._op.reshape, *args, **kwargs)
+
+    def log(self, *args, **kwargs):
+        return self.unary_operator_function_call(self._op.log, *args, **kwargs)
 
 class Parameter(cupyTensor):
     def __init__(self, data):
@@ -94,7 +244,8 @@ class myModule:
         self._dev = dict()
         self._dev['device'] = 'cpu'  # default
         self._dev['id'] = -1  # cpu default
-        self.op = np # default
+        self.op = op() # default
+        # self.op = np
 
     def forward_call(self, x):
         return self.forward(x)
@@ -152,35 +303,39 @@ class myModule:
         if _args == None: # call: to()
             self._dev['id'] = 0
             self._dev['device'] = "cuda"
-            self.op = cp
+            self.op.set_op(cp)
+            # self.op = cp
             # cp.cuda.Device(self._dev['id']).use()
             cp.cuda.runtime.setDevice(self._dev['id'])
 
             _parameters = self.__dict__['_parameters']
             for _param_key in _parameters:
-                _parameters[_param_key].to(self._dev)
+                _parameters[_param_key].to(f"{self._dev['device']}:{self._dev['id']}")
 
         elif "cpu" in _args: # call: to("cpu") or to(device="cpu")
             self._dev['id'] = -1
             self._dev['device'] = "cpu"
-            self.op = np
+            self.op.set_op(np)
+            # self.op = np
 
             _parameters = self.__dict__['_parameters']
             for _param_key in _parameters:
-                _parameters[_param_key].to(self._dev)
+                _parameters[_param_key].to(f"{self._dev['device']}:{self._dev['id']}")
 
         elif "cuda" in _args:
             gpu_id = int(_args.split(":")[-1])
 
             self._dev['id'] = gpu_id
             self._dev['device'] = "cuda"
-            self.op = cp
+            self.op.set_op(cp)
+            # self.op = cp
+
             # cp.cuda.Device(self._dev['id']).use()
             cp.cuda.runtime.setDevice(self._dev['id'])
 
             _parameters = self.__dict__['_parameters']
             for _param_key in _parameters:
-                _parameters[_param_key].to(self._dev)
+                _parameters[_param_key].to(f"{self._dev['device']}:{self._dev['id']}")
         return self
 
     # def _ret_lib(self):
@@ -223,16 +378,7 @@ class mySequential(myModule):
         return x
 ############################### test ####################################################
 
-class testModel(myModule):
-    def __init__(self):
-        super(testModel, self).__init__()
 
-        self.layer1 = mySequential(
-            [1,2],
-            [3,4],
-            [5,6]
-        )
-
-
-if __name__ == "__main__":
-    test = testModel()
+# if __name__ == "__main__":
+#     # operator unit test
+#     operator_unit_test()

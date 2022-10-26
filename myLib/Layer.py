@@ -1,17 +1,17 @@
 from typing import Callable, Any, List
-if __name__ == "__main__":
-    from Module import myModule, Parameter
-else:
-    from .Module import myModule, Parameter
+
 import cupy as cp
 import numpy as np
-
+if __name__ == "__main__":
+    from .Module import myModule, cupyTensor, Parameter, mySequential
+else:
+    from .Module import myModule, cupyTensor, Parameter, mySequential
 
 class BaseLayer(myModule):
     def __init__(self):
         super(BaseLayer, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x:cupyTensor):
         ...
 
     # __call__: Callable[..., Any] = forward
@@ -30,8 +30,74 @@ class ReLU(BaseLayer):
     def __init__(self):
         super(ReLU, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x: cupyTensor):
         return self.op.maximum(0, x)
+
+class operator_test_layer(BaseLayer):
+    def __init__(self):
+        super(operator_test_layer, self).__init__()
+
+        self.binary_test_sample = Parameter(np.array([[2,3], [5,6]]))
+
+    def forward(self, x: cupyTensor):
+        ########## binary operator test ########################
+        # add
+        temp = x + self.binary_test_sample
+        # mul
+        temp = x * self.binary_test_sample
+        # sub
+        temp = x - self.binary_test_sample
+        # div
+        temp = x / self.binary_test_sample
+        # dot
+        temp = self.op.dot(x, self.binary_test_sample)
+        # maxium
+        temp = self.op.maximum(2, x)
+        # pow **
+        temp = x ** 2
+        # += iadd
+        temp +=  x
+        # *= imul
+        temp *= x
+        # /= idiv
+        temp /= x
+        # // ???
+        temp = self.binary_test_sample // x
+        # == eq
+        temp = self.binary_test_sample == x
+        # <=
+        temp = self.binary_test_sample <= x
+        # >=
+        temp = self.binary_test_sample >= x
+        # >
+        temp = self.binary_test_sample > x
+        # <
+        temp = self.binary_test_sample < x
+        # | or
+        temp = self.binary_test_sample | x
+        # ^ xor
+        temp = self.binary_test_sample ^ x
+        # & and
+        temp = self.binary_test_sample & x
+
+        ############## unary operator test ###############################
+
+        # mean
+        temp = self.op.mean(x, axis=1)
+        # sum
+        temp = self.op.sum(x, axis=1)
+        # exp
+        temp_exp = self.op.exp(x)
+        # reshape
+        temp = self.op.reshape(x, (1, 4))
+        # negative
+        temp = -x
+        # positive
+        temp = +x
+        # log
+        temp = self.op.log(temp_exp)
+        # abs
+        temp = self.op.abs(-x)
 
 
 class Linear(BaseLayer):
@@ -46,11 +112,11 @@ class Linear(BaseLayer):
         if bias:
             self.bias = Parameter(self.op.random.uniform(low=-_k, high=_k, size=out_features))
 
-    def forward(self, x): # N C_in -> N C_out
+    def forward(self, x: cupyTensor): # N C_in -> N C_out
         if self.bias:
-            x = self.op.dot(x, self.weight.data) + self.bias.data
+            x = self.op.dot(x, self.weight) + self.bias
         else:
-            x = self.op.dot(x, self.weight.data)
+            x = self.op.dot(x, self.weight)
         return x
 
 if __name__ == "__main__":
