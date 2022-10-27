@@ -266,7 +266,8 @@ def Linear_Layer_test():
     dense.backward(out)
     print()
 
-# Linear_Layer_test()
+if __name__ == "__main__":
+    Linear_Layer_test()
 
 class MaxPoolLayer_np():
     def __init__(self, kernel_size=2, stride=1, padding=0):

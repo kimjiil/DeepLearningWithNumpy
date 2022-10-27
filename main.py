@@ -67,10 +67,11 @@ if __name__ == "__main__":
     model = Simple_CNN()
     model.to()
     criterion = torch.nn.CrossEntropyLoss()
+    # criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
     train_len = len(train_dataset)
-    batch_size = 32
+    batch_size = 3
     epoch = 10
     for epoch_i in range(epoch):
         step_size = int(train_len / batch_size)
@@ -84,7 +85,14 @@ if __name__ == "__main__":
 
             optimizer.zero_grad()
             outputs = model(data)
+            outputs = torch.tensor([[0,1,2,3,4,5,6,7,8,9],
+                                    [0,1,2,3,4,5,6,7,8,9],
+                                    [0,1,2,3,4,5,6,7,8,9]], dtype=torch.float32).to()
+            outputs.grad_fn = "test"
+            # import torch.nn.functional as F
 
+            # label = F.one_hot(label, 10)
+            # label = label.type(torch.float32)
             loss = criterion(outputs, label)
             loss.backward()
             optimizer.step()

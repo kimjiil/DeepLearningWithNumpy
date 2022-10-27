@@ -56,5 +56,20 @@ a = np.array([[2, 2],
               [4, 3]])
 b = cupyTensor([2, 1])
 
-n
 
+class tc1:
+    def f1(self):
+        print("f1")
+
+
+class tc2:
+    def __init__(self):
+        self.back = None
+
+a = tc1()
+
+b = tc2()
+b.back = a.f1
+
+b.back()
+print()

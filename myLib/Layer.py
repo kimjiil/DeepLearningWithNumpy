@@ -16,15 +16,14 @@ class BaseLayer(myModule):
 
     # __call__: Callable[..., Any] = forward
 
-    def _backward(self):
-        pass
-
-    def _update(self):
-        pass
-
-    def get_params(self):
-        pass
-
+    # def _backward(self):
+    #     pass
+    #
+    # def _update(self):
+    #     pass
+    #
+    # def get_params(self):
+    #     pass
 
 class ReLU(BaseLayer):
     def __init__(self):
@@ -33,11 +32,14 @@ class ReLU(BaseLayer):
     def forward(self, x: cupyTensor):
         return self.op.maximum(0, x)
 
+    def backward(self, x: cupyTensor):
+        print("relu back test")
+        return x
 class operator_test_layer(BaseLayer):
     def __init__(self):
         super(operator_test_layer, self).__init__()
 
-        self.binary_test_sample = Parameter(np.array([[2,3], [5,6]]))
+        self.binary_test_sample = Parameter(np.array([[2,3], [5,6]], dtype=np.float32))
 
     def forward(self, x: cupyTensor):
         ########## binary operator test ########################
@@ -73,12 +75,12 @@ class operator_test_layer(BaseLayer):
         temp = self.binary_test_sample > x
         # <
         temp = self.binary_test_sample < x
-        # | or
-        temp = self.binary_test_sample | x
-        # ^ xor
-        temp = self.binary_test_sample ^ x
-        # & and
-        temp = self.binary_test_sample & x
+        # # | or
+        # temp = self.binary_test_sample | x
+        # # ^ xor
+        # temp = self.binary_test_sample ^ x
+        # # & and
+        # temp = self.binary_test_sample & x
 
         ############## unary operator test ###############################
 
@@ -118,6 +120,11 @@ class Linear(BaseLayer):
         else:
             x = self.op.dot(x, self.weight)
         return x
+
+    def backward(self, back:cupyTensor):
+        print("linear back test")
+        self.backward_fn(back)
+        # return back
 
 if __name__ == "__main__":
 
