@@ -3,15 +3,13 @@ if __name__ == "__main__":
 else:
     from .Module import myModule, Parameter
 
-import cupy as cp
-import numpy as np
-
 class testloss(myModule):
     def __init__(self):
         super(testloss, self).__init__()
 
-    # def __call__(self, pred, label):
-    #     return 0.5 * self.op.mean(self.op.sum((pred - label) ** 2))
-
     def forward(self, pred, label):
         return 0.5 * self.op.mean(self.op.sum((pred - label) ** 2))
+
+    def backward(self, *args, **kwargs):
+        print("Loss backward!!!")
+        self.backward_fn(*args, **kwargs)

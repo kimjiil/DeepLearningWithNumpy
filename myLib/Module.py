@@ -6,7 +6,7 @@ import cupy as cp
 import operator
 from functools import wraps
 
-decorator_active = True
+decorator_active = False
 
 def print_decorator(type, function_string, active):
     def decorator(func):
@@ -30,18 +30,20 @@ class myModule:
         # self.op = np
 
     def forward_call(self, *args, **kwargs):
-        self.backward_fn = args[0].backward_fn
-        args[0].backward_fn = self.backward
+        if args[0].backward_prev:
+            self.backward_fn = args[0].backward_prev
+        else:
+            self.backward_fn = args[0].backward_fn
+        args[0].backward_prev = self.backward
 
         return self.forward(*args, **kwargs)
 
     __call__: Callable[..., Any] = forward_call
 
-    def backward(self):
-        print("backward!!!")
-        print("backward!!!")
-        print("backward!!!")
-        print("backward!!!")
+    def backward(self, *args, **kwargs):
+        # print("myModule backward!!!")
+        self.backward_fn(*args, **kwargs)
+
 
     def eval(self):
         pass
@@ -138,11 +140,6 @@ class myModule:
             # super(myModule, self).__setattr__(key, value)
             object.__setattr__(self, key, value)
 
-        # return object
-    # def __getattr__(self, item):
-    #     print("get!!")
-    #     ...
-
     def add_module(self, key, module):
         self._modules[key] = module
 
@@ -155,7 +152,6 @@ class op:
         self._op = op
     ###### original function end #####################
 
-
     # ↓ numpy and cupy class wrapper
     class _random:
         def __init__(self, op):
@@ -166,28 +162,28 @@ class op:
 
     # ↓ numpy and cupy function wrapper
     def maximum(self, x1, x2, *args, **kwargs):
-
         if isinstance(x1, cupyTensor):
             temp_x1 = x1.data
-            temp_fn = x1.backward_fn
+            # temp_fn = x1.backward_fn
+            temp_prev = x1.backward_prev
             temp_op = x1.op
         else:
             temp_x1 = x1
 
         if isinstance(x2, cupyTensor):
             temp_x2 = x2.data
-            temp_fn = x2.backward_fn
+            # temp_fn = x2.backward_fn
+            temp_prev = x2.backward_prev
             temp_op = x2.op
         else:
             temp_x2 = x2
         new_temp = self._op.maximum(temp_x1, temp_x2, *args, **kwargs)
-        # new_temp = self._op.maximum(x1, x2, *args, **kwargs)
         new = cupyTensor(new_temp)
-        new.grad_fn = "<opertaion.maximum>"
-        new.backward_fn = temp_fn
+        new.grad_fn = "<fuction.maximum>"
+        new.backward_fn = temp_prev
+        new.backward_prev = temp_prev
         new.op = temp_op
         return new
-        # return self._op.maximum(x1, x2, *args, **kwargs)
 
     def where(self, *args, **kwargs):
         ...
@@ -225,19 +221,9 @@ class cupyTensor(myModule):
         self.grad_fn = None
         self.requires_grad = False
         self.grad = None
+        self.backward_fn = self.backward
+        self.backward_prev = None
         # self._op = np
-
-    # def to(self, dev):
-    #     if "cuda" in dev:
-    #         cp.cuda.runtime.setDevice(int(dev.split(":")[-1]))
-    #         self._op = cp
-    #         self.data = cp.asarray(self.data)
-    #     elif "cpu" in dev:
-    #         self._op = np
-    #         self.data = cp.asnumpy(self.data)
-    #         cp._default_memory_pool.free_all_blocks()
-    #
-    #     return self
 
     def to(self, *args, **kwargs):
         if len(args) > 1 or len(kwargs) > 1:
@@ -273,9 +259,13 @@ class cupyTensor(myModule):
     def __repr__(self):
         return f"cupyTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
 
-    def backward(self):
+    def backward(self, *args, **kwargs):
         print("tensor backward!")
-        self.backward_fn(self)
+        if self.backward_fn == self.backward:
+            print("this is start Tensor")
+        else:
+            print("this is end Tensor")
+            self.backward_fn(self)
 
     #slicing call
     def __setslice__(self, i, j, sequence):
@@ -290,7 +280,6 @@ class cupyTensor(myModule):
         self.data[key] = value
         return self
 
-
     def binary_operator_function_call(self, operator, other):
         if isinstance(other, cupyTensor):
             temp_data = other.data
@@ -301,20 +290,20 @@ class cupyTensor(myModule):
         _new = cupyTensor(_new_data)
         _new.grad_fn = f"{operator}"
         _new.op = self.op
-        _new.backward_fn = self.backward_fn
+        _new.backward_fn = self.backward_prev
+        _new.backward_prev = self.backward_prev
         return _new
 
     def unary_operator_function_call(self, *args, **kwargs):
         # args[0]은 항상 operator로 들어옴
-        print("unary operator function call!!")
+        # print("unary operator function call!!")
         operator = args[0]
 
         _new_data = operator(self.data, *args[1:], **kwargs)
-        # if not isinstance(type(_new_data), np.ndarray):
-        #     _new_data = np.array
         _new = cupyTensor(_new_data)
         _new.grad_fn = f"{operator}"
-        _new.backward_fn = self.backward_fn
+        _new.backward_fn = self.backward_prev
+        _new.backward_prev = self.backward_prev
         return _new
 
     def __add__(self, other):
@@ -447,7 +436,6 @@ class Parameter(cupyTensor):
         super(Parameter, self).__init__(data)
 
 
-
 class mySequential(myModule):
     def __init__(self, *args):
         super(mySequential, self).__init__()
@@ -461,12 +449,15 @@ class mySequential(myModule):
             x = module[module_key].forward(x)
         return x
 
-    def backward(self, back):
+    def backward(self, *args, **kwargs):
+        print("seq module backward!!")
+        back = args[0]
         module = self.__dict__['_modules']
         for module_key in reversed(module):
             back = module[module_key].backward(back)
-        return back
-    # def backward(self, back_x):
+
+        self.backward_fn(back)
+
 ############################### test ####################################################
 
 

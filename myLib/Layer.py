@@ -11,14 +11,20 @@ class BaseLayer(myModule):
     def __init__(self):
         super(BaseLayer, self).__init__()
 
-    def forward(self, x:cupyTensor):
+    def forward(self, x: cupyTensor):
         ...
+
+    def backward(self, *args, **kwargs):
+        if self.backward_fn:
+            # 레이어가 sequeatial에 포함되지않고 단독으로 있을 경우
+            temp = self._backward(*args, **kwargs)
+            self.backward_fn(temp, *args[1:], **kwargs)
+        else:
+            # 이 레이어가 Sequential에 포함될 때
+            return self._backward(*args, **kwargs)
 
     # __call__: Callable[..., Any] = forward
 
-    # def _backward(self):
-    #     pass
-    #
     # def _update(self):
     #     pass
     #
@@ -32,9 +38,9 @@ class ReLU(BaseLayer):
     def forward(self, x: cupyTensor):
         return self.op.maximum(0, x)
 
-    def backward(self, x: cupyTensor):
-        print("relu back test")
-        return x
+    def _backward(self, *args, **kwargs):
+       return args[0]
+
 class operator_test_layer(BaseLayer):
     def __init__(self):
         super(operator_test_layer, self).__init__()
@@ -121,10 +127,8 @@ class Linear(BaseLayer):
             x = self.op.dot(x, self.weight)
         return x
 
-    def backward(self, back:cupyTensor):
-        print("linear back test")
-        self.backward_fn(back)
-        # return back
+    def _backward(self, *args, **kwargs):
+        return args[0]
 
 if __name__ == "__main__":
 
