@@ -31,6 +31,7 @@ class Simple_CNN(nn.Module):
             nn.Conv2d(1, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.BatchNorm2d
         )
 
         self.layer2 = nn.Sequential(
@@ -50,7 +51,6 @@ class Simple_CNN(nn.Module):
 
         self.fc2 = nn.Linear(625, 10, bias=True)
         nn.init.xavier_uniform_(self.fc2.weight)
-
     def forward(self, x):
         x = self.layer1(x)
         x = self.layer2(x)

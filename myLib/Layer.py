@@ -3,15 +3,15 @@ from typing import Callable, Any, List
 import cupy as cp
 import numpy as np
 if __name__ == "__main__":
-    from .Module import myModule, cupyTensor, Parameter, mySequential
+    from .Module import myModule, myTensor, myParameter, mySequential
 else:
-    from .Module import myModule, cupyTensor, Parameter, mySequential
+    from .Module import myModule, myTensor, myParameter, mySequential
 
 class BaseLayer(myModule):
     def __init__(self):
         super(BaseLayer, self).__init__()
 
-    def forward(self, x: cupyTensor):
+    def forward(self, x: myTensor):
         ...
 
     def backward(self, *args, **kwargs):
@@ -35,7 +35,7 @@ class ReLU(BaseLayer):
     def __init__(self):
         super(ReLU, self).__init__()
 
-    def forward(self, x: cupyTensor):
+    def forward(self, x: myTensor):
         return self.op.maximum(0, x)
 
     def _backward(self, *args, **kwargs):
@@ -45,9 +45,9 @@ class operator_test_layer(BaseLayer):
     def __init__(self):
         super(operator_test_layer, self).__init__()
 
-        self.binary_test_sample = Parameter(np.array([[2,3], [5,6]], dtype=np.float32))
+        self.binary_test_sample = myParameter(np.array([[2, 3], [5, 6]], dtype=np.float32))
 
-    def forward(self, x: cupyTensor):
+    def forward(self, x: myTensor):
         ########## binary operator test ########################
         # add
         temp = x + self.binary_test_sample
@@ -116,15 +116,15 @@ class Linear(BaseLayer):
         self.out_features = out_features
 
         _k = np.sqrt(1/in_features)
-        self.weight = Parameter(self.op.random.uniform(low=-_k, high=_k, size=(in_features, out_features)))
+        self.weight = myParameter(self.op.random.uniform(low=-_k, high=_k, size=(in_features, out_features)))
         if bias:
-            self.bias = Parameter(self.op.random.uniform(low=-_k, high=_k, size=out_features))
+            self.bias = myParameter(self.op.random.uniform(low=-_k, high=_k, size=out_features))
 
-    def forward(self, x: cupyTensor): # N C_in -> N C_out
+    def forward(self, x: myTensor): # N C_in -> N C_out
         if self.bias:
-            x = self.op.dot(x, self.weight) + self.bias
+            x = self.op.matmul(x, self.weight) + self.bias
         else:
-            x = self.op.dot(x, self.weight)
+            x = self.op.matmul(x, self.weight)
         return x
 
     def _backward(self, *args, **kwargs):

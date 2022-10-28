@@ -17,7 +17,7 @@ sequential class는 module class에서 받아와서 module의 add_module을 실�
 
 '''
 
-from myLib.Module import myModule, mySequential, cupyTensor
+from myLib.Module import myModule, mySequential, myTensor
 from myLib.Layer import ReLU, Linear
 from myLib.LossFunc import testloss
 
@@ -59,19 +59,22 @@ def test00():
 
     model = my_model()
     model.to(device="cuda:0")
+    model.to(device="cpu")
 
     input = np.random.randn(5, 20)
     # cp.cuda.runtime.setDevice()
     # input_cuda_test = cp.asarray(input)
     # mul_test = 2 * input_cuda_test
-    input_cuda = cupyTensor(input).to('cuda:0')
+    input_cuda = myTensor(input).to('cuda:0')
+    input_cpu = input_cuda.to("cpu")
     label = np.zeros((5, 10))
     label[0, 5] = 1
     label[1, 6] = 1
     label[2, 3] = 1
     label[3, 4] = 1
     label[4, 8] = 1
-    label_cuda = cupyTensor(label).to("cuda:0")
+    label_cuda = myTensor(label).to("cuda:0")
+    label_cpu = label_cuda.to("cpu")
     pred = model(input_cuda)
 
 
@@ -100,7 +103,7 @@ def test01():
     a = np.array([[1,2], [4,6]], dtype=np.float32)
     b = np.array([[2,1], [2,3]], dtype=np.float32)
     a /= b
-    temp = cupyTensor(a)#.to('cuda:0')
+    temp = myTensor(a)#.to('cuda:0')
     # temp = temp[:, :, np.newaxis]
     temp[0,0] = 3.5
     test = testModel()#.to('cuda:0')

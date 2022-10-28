@@ -50,11 +50,11 @@ from collections import OrderedDict
 import cupy as cp
 
 
-from myLib.Module import cupyTensor
+from myLib.Module import myTensor
 
 a = np.array([[2, 2],
               [4, 3]])
-b = cupyTensor([2, 1])
+b = myTensor([2, 1])
 
 
 class tc1:
