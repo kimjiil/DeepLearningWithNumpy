@@ -42,7 +42,11 @@ class myModule:
 
     def backward(self, *args, **kwargs):
         # print("myModule backward!!!")
-        self.backward_fn(*args, **kwargs)
+        if hasattr(self, '_backward'):
+            temp = self._backward(*args, **kwargs)
+            self.backward_fn(temp, *args[1:], **kwargs)
+        else:
+            self.backward_fn(*args, **kwargs)
 
     def eval(self):
         pass

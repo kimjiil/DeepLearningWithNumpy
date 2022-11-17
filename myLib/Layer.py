@@ -36,10 +36,11 @@ class ReLU(BaseLayer):
         super(ReLU, self).__init__()
 
     def forward(self, x: myTensor):
+        self._backward_save = x > 0
         return self.op.maximum(0, x)
 
     def _backward(self, *args, **kwargs):
-       return args[0]
+       return self._backward_save * args[0]
 
 class operator_test_layer(BaseLayer):
     def __init__(self):
