@@ -81,12 +81,7 @@ class operator_test_layer(BaseLayer):
         temp = self.binary_test_sample > x
         # <
         temp = self.binary_test_sample < x
-        # # | or
-        # temp = self.binary_test_sample | x
-        # # ^ xor
-        # temp = self.binary_test_sample ^ x
-        # # & and
-        # temp = self.binary_test_sample & x
+
 
         ############## unary operator test ###############################
 
@@ -122,7 +117,7 @@ class Linear(BaseLayer):
 
     def forward(self, x: myTensor): # N C_in -> N C_out
         if self.bias:
-            x = self.op.matmul(x, self.weight) + self.bias
+            x = self.bias + self.op.matmul(x, self.weight)
         else:
             x = self.op.matmul(x, self.weight)
         return x

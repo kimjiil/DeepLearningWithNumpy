@@ -164,10 +164,12 @@ class op:
     
     # ↓ numpy and cupy function wrapper
     def maximum(self, x1, x2, *args, **kwargs):
+        temp_prev = None
         if isinstance(x1, myTensor):
             temp_x1 = x1.data
             # temp_fn = x1.backward_fn
-            temp_prev = x1.backward_prev
+            if x1.backward_prev:
+                temp_prev = x1.backward_prev
             temp_op = x1.op
         else:
             temp_x1 = x1
@@ -175,7 +177,8 @@ class op:
         if isinstance(x2, myTensor):
             temp_x2 = x2.data
             # temp_fn = x2.backward_fn
-            temp_prev = x2.backward_prev
+            if x2.backward_prev:
+                temp_prev = x2.backward_prev
             temp_op = x2.op
         else:
             temp_x2 = x2
@@ -197,7 +200,8 @@ class op:
         if isinstance(x1, myTensor):
             temp_x1 = x1.data
             # temp_fn = x1.backward_fn
-            temp_prev = x1.backward_prev
+            if x1.backward_prev:
+                temp_prev = x1.backward_prev
             temp_op = x1.op
         else:
             temp_x1 = x1
@@ -205,7 +209,8 @@ class op:
         if isinstance(x2, myTensor):
             temp_x2 = x2.data
             # temp_fn = x2.backward_fn
-            temp_prev = x2.backward_prev
+            if x2.backward_prev:
+                temp_prev = x2.backward_prev
             temp_op = x2.op
         else:
             temp_x2 = x2
@@ -310,15 +315,19 @@ class myTensor(myModule):
     def binary_operator_function_call(self, operator, other):
         if isinstance(other, myTensor):
             temp_data = other.data
+            if other.backward_prev:
+                temp_prev = other.backward_prev
         else:
             temp_data = other
+        if self.backward_prev:
+            temp_prev = self.backward_prev
 
         _new_data = operator(self.data, temp_data)
         _new = myTensor(_new_data)
         _new.grad_fn = f"{operator}"
         _new.op = self.op
-        _new.backward_fn = self.backward_prev
-        _new.backward_prev = self.backward_prev
+        _new.backward_fn = temp_prev
+        _new.backward_prev = temp_prev
         return _new
 
     def unary_operator_function_call(self, *args, **kwargs):
