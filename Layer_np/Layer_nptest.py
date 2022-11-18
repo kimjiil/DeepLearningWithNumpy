@@ -253,7 +253,7 @@ class LinearLayer_np():
 
         self._update_w = np.zeros((self._linear_weight.shape))
         self._update_b = np.zeros((self._linear_bias.shape))
-        self._update_w += np.mean(self._prev_input[:, :, np.newaxis] * _back_gradient[:, np.newaxis, :], axis=0)
+        self._update_w += np.mean(self._prev_input[:, :, np.newaxis] * _back_gradient[:, np.newaxis, :], axis=0) #이 부분 np.sum이 맞는거 같음..
 
         self._update_b += np.mean(_back_gradient, axis=0)
         output += np.sum(self._linear_weight[np.newaxis, :, :] * _back_gradient[:, np.newaxis, :], axis=-1)
