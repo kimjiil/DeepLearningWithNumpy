@@ -31,7 +31,6 @@ class Simple_CNN(nn.Module):
             nn.Conv2d(1, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
-            nn.BatchNorm2d
         )
 
         self.layer2 = nn.Sequential(

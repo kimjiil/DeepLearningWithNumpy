@@ -20,6 +20,7 @@ sequential class는 module class에서 받아와서 module의 add_module을 실�
 from myLib.Module import myModule, mySequential, myTensor
 from myLib.Layer import ReLU, Linear
 from myLib.LossFunc import testloss
+from myLib.Optimizer import Adam
 
 import numpy as np
 import cupy as cp
@@ -38,6 +39,11 @@ def function_control(active):
 
 test00_act = True
 test01_act = False
+
+# input = np.random.randn(5, 20)
+# cp.cuda.runtime.setDevice(0)
+# input_cuda_test = cp.asarray(input)
+# zero_test = cp.zeros_like(input_cuda_test)
 
 # @function_control(test00_act)
 def test00():
@@ -59,14 +65,15 @@ def test00():
 
     model = my_model()
     model.to(device="cuda:0")
-    model.to(device="cpu")
+
+    optimizer = Adam(model.parameters(), lr=0.001)
 
     input = np.random.randn(5, 20)
     # cp.cuda.runtime.setDevice()
     # input_cuda_test = cp.asarray(input)
     # mul_test = 2 * input_cuda_test
     input_cuda = myTensor(input).to('cuda:0')
-    input_cpu = input_cuda.to("cpu")
+    # input_cpu = input_cuda.to("cpu")
     label = np.zeros((5, 10))
     label[0, 5] = 1
     label[1, 6] = 1
@@ -74,14 +81,14 @@ def test00():
     label[3, 4] = 1
     label[4, 8] = 1
     label_cuda = myTensor(label).to("cuda:0")
-    label_cpu = label_cuda.to("cpu")
+    # label_cpu = label_cuda.to("cpu")
     pred = model(input_cuda)
 
 
     criterion = testloss()
     loss = criterion(pred, label_cuda)
     loss.backward()
-
+    optimizer.step()
     print()
 
 @function_control(test01_act)

@@ -117,14 +117,18 @@ class Linear(BaseLayer):
             self.bias = myParameter(self.op.random.uniform(low=-_k, high=_k, size=out_features))
 
     def forward(self, x: myTensor): # N C_in -> N C_out
+        self._backward_save = x
         if self.bias:
-            x = self.bias + self.op.matmul(x, self.weight)
+            x = self.op.matmul(x, self.weight) + self.bias
         else:
             x = self.op.matmul(x, self.weight)
         return x
 
     def _backward(self, *args, **kwargs):
-        return args[0]
+        self.weight.grad = self.op.matmul(self.op.transpose(self._backward_save), args[0])
+        self.bias.grad = self.op.sum(args[0], axis=0)
+        _back = self.op.matmul(args[0], self.op.transpose(self.weight))
+        return _back
 
 if __name__ == "__main__":
 

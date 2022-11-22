@@ -40,6 +40,9 @@ class myModule:
 
     __call__: Callable[..., Any] = forward_call
 
+    def _get_op(self):
+        return self.op
+
     def backward(self, *args, **kwargs):
         # print("myModule backward!!!")
         if hasattr(self, '_backward'):
@@ -55,7 +58,14 @@ class myModule:
         pass
 
     def parameters(self):
-        pass
+        # return trainable parameters iterator
+        for child in self.children():
+            params = child.parameters() #여기서 generator 리턴받음
+            for p in params:
+                yield p
+
+        for param in self._parameters:
+            yield self._parameters[param]
 
     # 현재 함수의 하위 함수를 모두 호출하기 위한 iterator
     def children(self):
@@ -128,16 +138,18 @@ class myModule:
         return self
 
     def __setattr__(self, key, value):
-        if isinstance(value, myModule):
-            modules = self.__dict__.get("_modules")
-            modules[key] = value
-            # super(myModule, self).__setattr__(key, value)
-            object.__setattr__(self, key, value)
-        elif isinstance(value, myParameter):
+        if isinstance(value, myParameter):
             parameters = self.__dict__.get("_parameters")
             parameters[key] = value
             # super(myModule, self).__setattr__(key, value)
             object.__setattr__(self, key, value)
+
+        elif isinstance(value, myModule):
+            modules = self.__dict__.get("_modules")
+            modules[key] = value
+            # super(myModule, self).__setattr__(key, value)
+            object.__setattr__(self, key, value)
+
         else:
             # super(myModule, self).__setattr__(key, value)
             object.__setattr__(self, key, value)
@@ -162,97 +174,98 @@ class op:
         def uniform(self, low=0.0, high=1.0, size=None):
             return self._op.uniform(low=low, high=high, size=size)
 
-    def function_wrapper(self, operator, *args, **kwargs):
-        # 일단 보류
-        ...
-    
-    # ↓ numpy and cupy function wrapper
-    def maximum(self, x1, x2, *args, **kwargs):
+    def unary_function_wrapper(self, operator, *args, **kwargs):
         temp_prev = None
-        if isinstance(x1, myTensor):
-            temp_x1 = x1.data
+        if isinstance(args[0], myTensor):
+            temp_x1 = args[0].data
             # temp_fn = x1.backward_fn
-            if x1.backward_prev:
-                temp_prev = x1.backward_prev
-            temp_op = x1.op
+            if args[0].backward_prev:
+                temp_prev = args[0].backward_prev
+            temp_op = args[0].op
         else:
-            temp_x1 = x1
+            temp_x1 = args[0]
 
-        if isinstance(x2, myTensor):
-            temp_x2 = x2.data
-            # temp_fn = x2.backward_fn
-            if x2.backward_prev:
-                temp_prev = x2.backward_prev
-            temp_op = x2.op
-        else:
-            temp_x2 = x2
-        new_temp = self._op.maximum(temp_x1, temp_x2, *args, **kwargs)
+        new_temp = operator(temp_x1, *args[1:], **kwargs)
         new = myTensor(new_temp)
-        new.grad_fn = "<fuction.maximum>"
+        new.grad_fn = f"<{operator}>"
         new.backward_fn = temp_prev
         new.backward_prev = temp_prev
         new.op = temp_op
         return new
+
+    def binary_function_wrapper(self, operator, *args, **kwargs):
+        temp_prev = None
+        if isinstance(args[0], myTensor):
+            temp_x1 = args[0].data
+            # temp_fn = x1.backward_fn
+            if args[0].backward_prev:
+                temp_prev = args[0].backward_prev
+            temp_op = args[0].op
+        else:
+            temp_x1 = args[0]
+
+        if isinstance(args[1], myTensor):
+            temp_x2 = args[1].data
+            # temp_fn = x2.backward_fn
+            if args[1].backward_prev:
+                temp_prev = args[1].backward_prev
+            temp_op = args[1].op
+        else:
+            temp_x2 = args[1]
+
+        new_temp = operator(temp_x1, temp_x2, *args[2:], **kwargs)
+        new = myTensor(new_temp)
+        new.grad_fn = f"<{operator}>"
+        new.backward_fn = temp_prev
+        new.backward_prev = temp_prev
+        new.op = temp_op
+        return new
+
+    def zeros_like(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.zeros_like, *args, **kwargs)
+
+    # ↓ numpy and cupy function wrapper
+    def maximum(self, *args, **kwargs):
+        return self.binary_function_wrapper(self._op.maximum, *args, **kwargs)
 
     def where(self, *args, **kwargs):
         ...
 
+    def sqrt(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.sqrt, *args, **kwargs)
+
     def dot(self, *args,  **kwargs):
-        return self._op.dot(*args,  **kwargs)
+        return self.binary_function_wrapper(self._op.dot, *args, **kwargs)
 
-    def matmul(self, x1, x2, *args, **kwargs):
-        if isinstance(x1, myTensor):
-            temp_x1 = x1.data
-            # temp_fn = x1.backward_fn
-            if x1.backward_prev:
-                temp_prev = x1.backward_prev
-            temp_op = x1.op
-        else:
-            temp_x1 = x1
-
-        if isinstance(x2, myTensor):
-            temp_x2 = x2.data
-            # temp_fn = x2.backward_fn
-            if x2.backward_prev:
-                temp_prev = x2.backward_prev
-            temp_op = x2.op
-        else:
-            temp_x2 = x2
-        new_temp = self._op.matmul(temp_x1, temp_x2, *args, **kwargs)
-        new = myTensor(new_temp)
-        new.grad_fn = "<fuction.matmul>"
-        new.backward_fn = temp_prev
-        new.backward_prev = temp_prev
-        new.op = temp_op
-        return new
+    def matmul(self, *args, **kwargs):
+        return self.binary_function_wrapper(self._op.matmul, *args, **kwargs)
 
     @print_decorator("operator", "mean", decorator_active)
     def mean(self, *args, **kwargs):
-        obj = self._op.mean(*args, **kwargs)
-        return obj
+        return self.unary_function_wrapper(self._op.mean, *args, **kwargs)
 
     @print_decorator("operator", "sum", decorator_active)
     def sum(self, *args, **kwargs):
-        obj = self._op.sum(*args, **kwargs)
-        return obj
+        return self.unary_function_wrapper(self._op.sum, *args, **kwargs)
 
     @print_decorator("operator", "exp", decorator_active)
     def exp(self, *args, **kwargs):
-        obj = self._op.exp(*args, **kwargs)
-        return obj
+        return self.unary_function_wrapper(self._op.exp, *args, **kwargs)
 
     def reshape(self, *args, **kwargs):
-        obj = self._op.reshape(*args, **kwargs)
-        return obj
+        return self.unary_function_wrapper(self._op.reshape, *args, **kwargs)
 
     def log(self, *args, **kwargs):
-        obj = self._op.log(*args, **kwargs)
-        return obj
+        return self.unary_function_wrapper(self._op.log, *args, **kwargs)
+
+    def transpose(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.transpose, *args, **kwargs)
 
 class myTensor(myModule):
     def __init__(self, data):
         super(myTensor, self).__init__()
         self.data = data
+        self.shape = self.data.shape
         self.grad_fn = None
         self.requires_grad = False
         self.grad = None
@@ -292,7 +305,7 @@ class myTensor(myModule):
         return self
 
     def __repr__(self):
-        return f"cupyTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
+        return f"myTensor - shape:{self.data.shape}, grad_fn:{self.grad_fn}, data:{self.data}"
 
     def backward(self, *args, **kwargs):
         # print("tensor backward!")
@@ -316,17 +329,21 @@ class myTensor(myModule):
         self.data[key] = value
         return self
 
-    def binary_operator_function_call(self, operator, other):
+    def binary_operator_function_call(self, operator, other, reverse=False):
         if isinstance(other, myTensor):
             temp_data = other.data
             if other.backward_prev:
                 temp_prev = other.backward_prev
         else:
             temp_data = other
+
         if self.backward_prev:
             temp_prev = self.backward_prev
 
-        _new_data = operator(self.data, temp_data)
+        if reverse:
+            _new_data = operator(temp_data, self.data)
+        else:
+            _new_data = operator(self.data, temp_data)
         _new = myTensor(_new_data)
         _new.grad_fn = f"{operator}"
         _new.op = self.op
@@ -362,13 +379,13 @@ class myTensor(myModule):
         return self.binary_operator_function_call(operator.truediv, other=other)
 
     def __rtruediv__(self, other):
-        return self.binary_operator_function_call(operator.truediv, other=other)
+        return self.binary_operator_function_call(operator.truediv, other=other, reverse=True) #서순이 문제가됨.
 
     def __sub__(self, other):
         return self.binary_operator_function_call(operator.sub, other=other)
 
     def __rsub__(self, other):
-        return self.binary_operator_function_call(operator.sub, other=other)
+        return self.binary_operator_function_call(operator.sub, other=other, reverse=True) #서순이 문제가됨.
 
     def __pow__(self, power, modulo=None):
         return self.binary_operator_function_call(operator.pow, other=power)
@@ -425,7 +442,7 @@ class myTensor(myModule):
         return self.binary_operator_function_call(operator.floordiv, other)
 
     def __rfloordiv__(self, other):
-        return self.binary_operator_function_call(operator.floordiv, other)
+        return self.binary_operator_function_call(operator.floordiv, other, reverse=True)
 
     # +(obj)
     def __pos__(self):
@@ -480,7 +497,10 @@ class myTensor(myModule):
 class myParameter(myTensor):
     def __init__(self, data):
         super(myParameter, self).__init__(data)
+        self._opt_file = dict()
 
+    def update_parameter(self, tensor):
+        self.data = tensor.data
 
 class mySequential(myModule):
     def __init__(self, *args):
