@@ -23,13 +23,17 @@ class BaseLayer(myModule):
             # 이 레이어가 Sequential에 포함될 때
             return self._backward(*args, **kwargs)
 
-    # __call__: Callable[..., Any] = forward
 
-    # def _update(self):
-    #     pass
-    #
-    # def get_params(self):
-    #     pass
+class Sigmoid(BaseLayer):
+    def __init__(self):
+        super(Sigmoid, self).__init__()
+
+    def forward(self, x: myTensor):
+        self._backward_save = 1 / (1 + self.op.exp(-x))
+        return self._backward_save
+
+    def _backward(self, *args, **kwargs):
+        return args[0] * self._backward_save * (1 - self._backward_save)
 
 class ReLU(BaseLayer):
     def __init__(self):

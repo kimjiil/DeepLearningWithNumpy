@@ -3,9 +3,9 @@ if __name__ == "__main__":
 else:
     from .Module import myModule, myParameter
 
-class testloss(myModule):
+class MSELoss(myModule):
     def __init__(self):
-        super(testloss, self).__init__()
+        super(MSELoss, self).__init__()
 
     def forward(self, pred, label):
         self._backward_save = pred - label

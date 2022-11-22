@@ -4,18 +4,18 @@ from .Module import myTensor, myModule
 class BaseOptimizer:
     def __init__(self, parameters, lr):
         # super(BaseOptimizer, self).__init__()
-        self.params_iter = parameters
+        self.params_list = [param for param in parameters]
         self.learning_rate = lr
         self.step_t = 1
 
     def zero_grad(self):
-        for param in self.params_iter:
+        for param in self.params_list:
             param.grad = None
 
     def step(self):
         # 여기서 parameter를 업데이트시킴
 
-        for param in self.params_iter:
+        for param in self.params_list:
             param.update_parameter(param - self.learning_rate * param.grad)
 
     def add_param_group(self):
@@ -36,7 +36,7 @@ class Adam(BaseOptimizer):
 
 
     def step(self):
-        for param in self.params_iter:
+        for param in self.params_list:
             op = param._get_op()
             if not '_m' in param._opt_file and not '_v' in param._opt_file:
                 param._opt_file['_m'] = op.zeros_like(param.grad)
