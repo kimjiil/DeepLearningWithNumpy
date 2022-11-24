@@ -23,6 +23,30 @@ class test_model(nn.Module):
     def forward(self, x):
         return self.layer2(x)
 
+
+class my_model(nn.Module):
+        def __init__(self):
+            super(my_model, self).__init__()
+            self.maxfool = nn.MaxPool2d(3, 2)
+            self.flatten = nn.Flatten()
+            self.hidden_layers = nn.Sequential(
+                nn.Linear(in_features=169, out_features=312, bias=True),
+                nn.ReLU(),
+                nn.Linear(in_features=312, out_features=128, bias=True),
+                nn.ReLU()
+            )
+            self.classifier = nn.Linear(in_features=128, out_features=10, bias=True)
+            self.sigmoid = nn.Sigmoid()
+            print()
+
+        def forward(self, x):
+            x = self.maxfool(x)
+            x = self.flatten(x)
+            x = self.hidden_layers(x)
+            x = self.classifier(x)
+            x = self.sigmoid(x)
+            return x
+
 class Simple_CNN(nn.Module):
     def __init__(self):
         super(Simple_CNN, self).__init__()
@@ -62,47 +86,47 @@ class Simple_CNN(nn.Module):
 
 
 if __name__ == "__main__":
+    import time
 
-    model = Simple_CNN()
-    model.to()
-    criterion = torch.nn.CrossEntropyLoss()
-    # criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    # model = Simple_CNN()
+    model = my_model()
+    model.to("cuda:0")
+    # criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     train_len = len(train_dataset)
-    batch_size = 3
-    epoch = 10
+    batch_size = 144
+    epoch = 100
     for epoch_i in range(epoch):
         step_size = int(train_len / batch_size)
-
+        start_time = time.time()
+        loss_sum = []
         for step_i in range(step_size):
             data = train_dataset.data[step_i * batch_size: batch_size * (step_i+1)]
             label = train_dataset.targets[step_i * batch_size: batch_size * (step_i+1)]
             data = torch.unsqueeze(data, 0)
             data = data.permute(1, 0, 2, 3)
-            data = data.type(torch.FloatTensor)
+            data = data.type(torch.FloatTensor).to("cuda:0")
 
             optimizer.zero_grad()
             outputs = model(data)
-            outputs = torch.tensor([[0,1,2,3,4,5,6,7,8,9],
-                                    [0,1,2,3,4,5,6,7,8,9],
-                                    [0,1,2,3,4,5,6,7,8,9]], dtype=torch.float32).to()
-            outputs.grad_fn = "test"
-            # import torch.nn.functional as F
 
-            # label = F.one_hot(label, 10)
-            # label = label.type(torch.float32)
-            loss = criterion(outputs, label)
+            target = torch.eye(10)[label].to("cuda:0")
+
+            loss = criterion(outputs, target)
             loss.backward()
+            loss_sum.append(loss.data)
             optimizer.step()
 
-            print(loss)
+        end_time = time.time()
+        print(epoch_i, sum(loss_sum) / len(loss_sum), end_time - start_time)
 
-        with torch.no_grad():
-            valid_data = valid_dataset.data.view(len(valid_dataset), 1, 28, 28).float()
-            valid_label = valid_dataset.targets
-            torch.save()
-            prediction = model(valid_data)
-            torch.argmax(prediction, dim=1)
-            acc = (torch.argmax(prediction, dim=1) == valid_label).float().mean()
-            print('acc : ', acc.item())
+        # with torch.no_grad():
+        #     valid_data = valid_dataset.data.view(len(valid_dataset), 1, 28, 28).float()
+        #     valid_label = valid_dataset.targets
+        #     torch.save()
+        #     prediction = model(valid_data)
+        #     torch.argmax(prediction, dim=1)
+        #     acc = (torch.argmax(prediction, dim=1) == valid_label).float().mean()
+        #     print('acc : ', acc.item())

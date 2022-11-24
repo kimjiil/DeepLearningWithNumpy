@@ -36,12 +36,15 @@ test01_act = False
 
 # @function_control(test00_act)
 def test00():
+    import time
+
     class my_model(myModule):
         def __init__(self):
             super(my_model, self).__init__()
-
+            self.maxpool = MaxPool2d(3, 2)
+            self.flatten = Flatten()
             self.hidden_layers = mySequential(
-                Linear(in_features=784, out_features=312, bias=True),
+                Linear(in_features=169, out_features=312, bias=True),
                 ReLU(),
                 Linear(in_features=312, out_features=128, bias=True),
                 ReLU()
@@ -51,9 +54,30 @@ def test00():
             print()
 
         def forward(self, x):
+            # start_time = time.time()
+            x = self.maxpool(x)
+            # end_time = time.time()
+            # print(f"maxpool - spend time : {round(end_time - start_time, 8)}s")
+
+            start_time = time.time()
+            x = self.flatten(x)
+            end_time = time.time()
+            # print(f"flatten - spend time : {round(end_time - start_time, 8)}s")
+
+            start_time = time.time()
             x = self.hidden_layers(x)
+            end_time = time.time()
+            # print(f"hidden layer - spend time : {round(end_time - start_time, 8)}s")
+
+            start_time = time.time()
             x = self.classifier(x)
+            end_time = time.time()
+            # print(f"classifier - spend time : {round(end_time - start_time, 8)}s")
+
+            start_time = time.time()
             x = self.sigmoid(x)
+            end_time = time.time()
+            # print(f"sigmoid - spend time : {round(end_time - start_time, 4)}s")
             return x
 
     model = my_model()
@@ -65,10 +89,11 @@ def test00():
     batch_size = 144
     total_size = len(train_dataset)
     for epoch_i in range(epoch_size):
+        start_time = time.time()
         step_size = int(total_size / batch_size)
         loss_sum = []
         for step_i in range(step_size):
-            input_data = train_dataset.data[step_i*batch_size:(step_i+1)*batch_size].numpy().reshape(batch_size, -1)
+            input_data = train_dataset.data[step_i*batch_size:(step_i+1)*batch_size].numpy().reshape(batch_size, 1, 28, 28)
             targets = train_dataset.targets[step_i*batch_size:(step_i+1)*batch_size].numpy()
             targets_one_hot = np.eye(10)[targets]
 
@@ -84,7 +109,8 @@ def test00():
 
             # print(step_i, loss)
             loss_sum.append(loss.data)
-        print(epoch_i, sum(loss_sum) / len(loss_sum))
+        end_time = time.time()
+        print(epoch_i, sum(loss_sum) / len(loss_sum), end_time - start_time)
     print()
 
 @function_control(test01_act)

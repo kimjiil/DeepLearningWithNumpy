@@ -34,7 +34,6 @@ class Adam(BaseOptimizer):
         self.beta2 = beta2
         self.eps = eps
 
-
     def step(self):
         for param in self.params_list:
             op = param._get_op()

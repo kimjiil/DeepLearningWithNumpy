@@ -8,6 +8,19 @@ from functools import wraps
 
 decorator_active = False
 
+def time_decorator(type, function_string):
+    import time
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            func(*args, **kwargs)
+            end_time = time.time()
+            print(f"{type} class {function_string} function call - spend time : {round(end_time - start_time, 4)}s")
+            return
+        return wrapper
+    return decorator
+
 def print_decorator(type, function_string, active):
     def decorator(func):
         @wraps(func)
@@ -184,6 +197,7 @@ class op:
             temp_op = args[0].op
         else:
             temp_x1 = args[0]
+            temp_op = self._op
 
         new_temp = operator(temp_x1, *args[1:], **kwargs)
         new = myTensor(new_temp)
@@ -221,12 +235,24 @@ class op:
         new.op = temp_op
         return new
 
+    def eye(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.eye, *args, **kwargs)
+
+    def argmax(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.argmax, *args, **kwargs)
+
+    def zeros(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.zeros, *args, **kwargs)
+
     def zeros_like(self, *args, **kwargs):
         return self.unary_function_wrapper(self._op.zeros_like, *args, **kwargs)
 
     # ↓ numpy and cupy function wrapper
     def maximum(self, *args, **kwargs):
         return self.binary_function_wrapper(self._op.maximum, *args, **kwargs)
+
+    def max(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.max, *args, **kwargs)
 
     def where(self, *args, **kwargs):
         ...
@@ -322,31 +348,60 @@ class myTensor(myModule):
 
     #slicing call
     def __getitem__(self, item):
-        self.data = self.data[item]
-        return self
+        # self.data = self.data[item]
+        if isinstance(item, myTensor):
+            _new_tensor = myTensor(self.data[item.data])
+            if item.backward_prev:
+                _new_tensor.backward_prev = item.backward_prev
+                _new_tensor.backward_fn = item.backward_fn
+                _new_tensor.op = item.op
+            else:
+                _new_tensor.backward_prev = self.backward_prev
+                _new_tensor.backward_fn = self.backward_fn
+                _new_tensor.op = self.op
+        else:
+            _new_tensor = myTensor(self.data[item])
+            _new_tensor.backward_prev = self.backward_prev
+            _new_tensor.backward_fn = self.backward_fn
+            _new_tensor.op = self.op
+        return _new_tensor
 
     def __setitem__(self, key, value):
-        self.data[key] = value
-        return self
+        self.data[key] = value.data
+        self.backward_prev = value.backward_prev
+        self.backward_fn = value.backward_fn
+        self.op = value.op
+        # return self
 
     def binary_operator_function_call(self, operator, other, reverse=False):
+        temp_prev = None
+        temp_op = None
+        if isinstance(self, myTensor):
+            temp_data1 = self.data
+            if self.backward_prev:
+                temp_prev = self.backward_prev
+
+            temp_op = self.op
+        else:
+            temp_data1 = self
+
         if isinstance(other, myTensor):
-            temp_data = other.data
+            temp_data2 = other.data
             if other.backward_prev:
                 temp_prev = other.backward_prev
-        else:
-            temp_data = other
 
-        if self.backward_prev:
-            temp_prev = self.backward_prev
+            temp_op = other.op
+        else:
+            temp_data2 = other
 
         if reverse:
-            _new_data = operator(temp_data, self.data)
+            _new_data = operator(temp_data2, temp_data1)
         else:
-            _new_data = operator(self.data, temp_data)
+            _new_data = operator(temp_data1, temp_data2)
+
         _new = myTensor(_new_data)
         _new.grad_fn = f"{operator}"
-        _new.op = self.op
+        _new.op = temp_op
         _new.backward_fn = temp_prev
         _new.backward_prev = temp_prev
         return _new

@@ -44,32 +44,49 @@ import numpy as np
 # print(weight1.grad)
 # print(weight2.grad)
 
-import numpy as np
-from typing import Callable, Any, Tuple, DefaultDict, List
-from collections import OrderedDict
+# import numpy as np
+# from typing import Callable, Any, Tuple, DefaultDict, List
+# from collections import OrderedDict
 import cupy as cp
+#
+#
+# from myLib.Module import myTensor
+#
+# a = np.array([[2, 2],
+#               [4, 3]])
+# b = myTensor([2, 1])
+#
+#
+# class tc1:
+#     def f1(self):
+#         print("f1")
+#
+#
+# class tc2:
+#     def __init__(self):
+#         self.back = None
+#
+# a = tc1()
+#
+# b = tc2()
+# b.back = a.f1
+#
+# b.back()
+# print()
 
+cp.put_axis_l
 
-from myLib.Module import myTensor
+def print_ratio(step, beta=0.999):
+    weight = []
+    for t in range(1, step+1):
+        _w = 0.001*0.999 ** (t-1)
+        weight.append(_w)
+        # print(f'{_w}*g_{step+1 - t} ', end='')
 
-a = np.array([[2, 2],
-              [4, 3]])
-b = myTensor([2, 1])
+    _s = sum(weight)
+    print(step, _s)
+    temp = [ w/_s for w in weight]
+    print()
 
-
-class tc1:
-    def f1(self):
-        print("f1")
-
-
-class tc2:
-    def __init__(self):
-        self.back = None
-
-a = tc1()
-
-b = tc2()
-b.back = a.f1
-
-b.back()
-print()
+for i in range(2000):
+    print_ratio(i)
