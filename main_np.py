@@ -3,11 +3,11 @@ from torchvision.datasets import MNIST
 from Layer_np.Layer_nptest import ConvLayer_np, LinearLayer_np, ReLULayer_np, FlattenLayer_np, MaxPoolLayer_np, LogSoftMax_np
 from Layer_np.optimizer_nptest import Adam
 
+import time
 
 download_path = "./MNIST_Datset"
 train_dataset = MNIST(download_path, train=True, download=True)
 valid_dataset = MNIST(download_path, train=False, download=True)
-
 
 def _forward(x, layers):
     out = x
@@ -59,6 +59,17 @@ layers = [
     LogSoftMax_np()
 ]
 
+layers_2 = [
+    MaxPoolLayer_np(kernel_size=3, stride=2),
+    FlattenLayer_np(),
+    LinearLayer_np(input_dim=169, output_dim=312),
+    ReLULayer_np(),
+    LinearLayer_np(input_dim=312, output_dim=128),
+    ReLULayer_np(),
+    LinearLayer_np(input_dim=128, output_dim=10),
+    LogSoftMax_np()
+]
+
 optimizer = Adam(lr=0.0001)
 LossFunc = None
 
@@ -69,7 +80,7 @@ testX = valid_dataset.data.numpy()
 testY = valid_dataset.targets.numpy()
 #
 total_epoch = 1000
-batch_size = 12
+batch_size = 144
 
 trainX = trainX[:60000] / 255.0
 trainY = trainY[:60000]
@@ -80,31 +91,34 @@ testY = testY[:10000]
 for epoch in range(total_epoch):
     step = int(len(trainX) / batch_size)
     loss_list = []
+    start_time = time.time()
     for step_i in range(step):
 
         X = trainX[step_i*batch_size:(step_i+1)*batch_size]
         Y = trainY[step_i*batch_size:(step_i+1)*batch_size]
         one_hot_Y = one_hot(Y)
         X = X[:, :, :, np.newaxis]
-        output = _forward(X, layers)
+        output = _forward(X, layers_2)
         back_propagation = output - one_hot_Y
         # loss = MSE_Loss(output, one_hot_Y)
         loss = Cross_Entropy_Loss(output, one_hot_Y)
         loss_list.append(loss)
-        print(loss)
-        _backward(back_propagation, layers)
+        # print(loss)
+        _backward(back_propagation, layers_2)
 
-        optimizer.update(layers=layers)
+        optimizer.update(layers=layers_2)
 
-    TEST_X = testX[:, :, :, np.newaxis] / 255.0
-    # TEST_Y = one_hot(testY)
-
-    output = _forward(TEST_X, layers)
-    # softmax_output = softmax(output)
-    acc = np.mean(testY == np.argmax(output, axis=1))
-    Text = f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc*100.0}%'
-    print(f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc*100.0}%')
-    with open('./Test.txt', 'a+') as file:
-        file.write(Text + "\n")
+    # TEST_X = testX[:, :, :, np.newaxis] / 255.0
+    # # TEST_Y = one_hot(testY)
+    #
+    # output = _forward(TEST_X, layers)
+    # # softmax_output = softmax(output)
+    # acc = np.mean(testY == np.argmax(output, axis=1))
+    # Text = f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc*100.0}%'
+    # print(f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc*100.0}%')
+    # with open('./Test.txt', 'a+') as file:
+    #     file.write(Text + "\n")
+    end_time = time.time()
+    print(epoch,  end_time - start_time)
 if __name__ == "__main__":
     pass

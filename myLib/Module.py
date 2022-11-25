@@ -235,6 +235,9 @@ class op:
         new.op = temp_op
         return new
 
+    def arange(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.arange, *args, **kwargs)
+
     def eye(self, *args, **kwargs):
         return self.unary_function_wrapper(self._op.eye, *args, **kwargs)
 
@@ -286,6 +289,9 @@ class op:
 
     def transpose(self, *args, **kwargs):
         return self.unary_function_wrapper(self._op.transpose, *args, **kwargs)
+
+    def tile(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.tile, *args,  **kwargs)
 
 class myTensor(myModule):
     def __init__(self, data):
@@ -367,10 +373,13 @@ class myTensor(myModule):
         return _new_tensor
 
     def __setitem__(self, key, value):
-        self.data[key] = value.data
-        self.backward_prev = value.backward_prev
-        self.backward_fn = value.backward_fn
-        self.op = value.op
+        if isinstance(value, myTensor):
+            self.data[key] = value.data
+            self.backward_prev = value.backward_prev
+            self.backward_fn = value.backward_fn
+            self.op = value.op
+        else:
+            self.data[key] = value
         # return self
 
     def binary_operator_function_call(self, operator, other, reverse=False):
@@ -423,6 +432,14 @@ class myTensor(myModule):
 
     def __radd__(self, other):
         return self.binary_operator_function_call(operator.add, other=other)
+
+    # if statement function call
+    def __bool__(self):
+        # 일반적인 Tensor가 오는 경우
+        if len(self.shape) == 0:
+            return self.data.item()
+        else:
+            return True
 
     def __mul__(self, other):
         return self.binary_operator_function_call(operator.mul, other=other)
@@ -531,23 +548,23 @@ class myTensor(myModule):
         print("test")
 
     def dot(self, b, out):
-        return self.binary_operator_function_call(self.op._op.dot, other=b)
+        return self.binary_operator_function_call(self.op.dot, other=b)
 
     def sum(self, *args, **kwargs):
-        return self.unary_operator_function_call(self.op._op.sum, *args, **kwargs)
+        return self.unary_operator_function_call(self.op.sum, *args, **kwargs)
 
     def mean(self, *args, **kwargs):
         # print("cupyTensor mean call!!")
-        return self.unary_operator_function_call(self.op._op.mean, *args, **kwargs)
+        return self.unary_operator_function_call(self.op.mean, *args, **kwargs)
 
     def exp(self, *args, **kwargs):
-        return self.unary_operator_function_call(self.op._op.exp, *args, **kwargs)
+        return self.unary_operator_function_call(self.op.exp, *args, **kwargs)
 
     def reshape(self, *args, **kwargs):
-        return self.unary_operator_function_call(self.op._op.reshape, *args, **kwargs)
+        return self.unary_operator_function_call(self.op.reshape, *args, **kwargs)
 
     def log(self, *args, **kwargs):
-        return self.unary_operator_function_call(self.op._op.log, *args, **kwargs)
+        return self.unary_operator_function_call(self.op.log, *args, **kwargs)
 
 class myParameter(myTensor):
     def __init__(self, data):

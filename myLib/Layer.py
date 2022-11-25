@@ -152,7 +152,6 @@ class Linear(BaseLayer):
 
 
 class MaxPool2d(BaseLayer):
-
     def __init__(self, kernel_size, stride=None, padding=0, dilation=1):
         super(MaxPool2d, self).__init__()
         self.kernel_size = self._set_tuple(kernel_size)
@@ -169,7 +168,6 @@ class MaxPool2d(BaseLayer):
             raise TypeError
 
     def forward(self, x: myTensor) -> myTensor:
-        start_time = time.time()
         # N C H_in W_in -> N C H_out W_out
         # C H_in W_in -> C H_out W_out
         x_shape = x.shape
@@ -187,6 +185,11 @@ class MaxPool2d(BaseLayer):
         new_shape = x_shape[:-2] + tuple([H_out, W_out])
         out_matrix = self.op.zeros(new_shape)
 
+        ##########################################################################
+        small_mask = self.op.reshape(self.op.arange(self.kernel_size[0] * self.kernel_size[1], 0, -1), (self.kernel_size[0], self.kernel_size[1]))* np.finfo(float).eps * 10
+        small_mask = self.op.tile(small_mask, [N, C, 1, 1])
+        ##########################################################################
+
         for h in range(H_out):
             h_start = self.stride[0] * h
             h_end = self.stride[0] * h + self.kernel_size[0]
@@ -194,25 +197,14 @@ class MaxPool2d(BaseLayer):
                 w_start = self.stride[1] * w
                 w_end = self.stride[1] * w + self.kernel_size[1]
 
-                kernel = padding_x[:, :, h_start:h_end, w_start:w_end]
+                kernel = padding_x[:, :, h_start:h_end, w_start:w_end] + small_mask
                 max_value = self.op.max(kernel, axis=(-2, -1))
                 out_matrix[:, :, h, w] = max_value
+                self._back_coord[(h, w)] = kernel >= max_value.reshape((N, C, 1, 1))
 
-                # create back gradient mask
-                res = self.op.reshape(kernel, (N*C, self.kernel_size[0] * self.kernel_size[1]))
-                temp = self.op.argmax(res, axis=1)
-                temp = self.op.reshape(temp, (N, C, 1))
-                _mask = self.op.eye(self.kernel_size[0] * self.kernel_size[1])[temp]
-                _mask = self.op.reshape(_mask, (N, C, self.kernel_size[0], self.kernel_size[1]))
-                self._back_coord[(h, w)] = _mask
-                # self.back_gradient_mask[:, :, h_start:h_end, w_start:w_end] += _mask
-
-        end_time = time.time()
-        print(f'forward time {end_time - start_time}s')
         return out_matrix
 
     def _backward(self, *args, **kwargs):
-        start_time = time.time()
         N, C, H_out, W_out = args[0].shape
         _back_gradient = self.op.zeros(tuple([N, C] + [self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]]))
         for h in range(H_out):
@@ -225,8 +217,6 @@ class MaxPool2d(BaseLayer):
                 _back_mask = self._back_coord[(h, w)] * args[0][:, :, h:h+1, w:w+1]
                 _back_gradient[:, :, h_start:h_end, w_start:w_end] += _back_mask
 
-        end_time = time.time()
-        print(f'backward time {end_time - start_time}s')
         return _back_gradient[:, :, self.padding[0]:self.H_in + 1 - self.padding[0], self.padding[1]:self.W_in + 1 - self.padding[1]]
 
 def _test_MaxFool2d():

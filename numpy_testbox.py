@@ -74,7 +74,7 @@ import cupy as cp
 # b.back()
 # print()
 
-cp.put_axis_l
+cp.indi
 
 def print_ratio(step, beta=0.999):
     weight = []

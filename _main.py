@@ -54,30 +54,11 @@ def test00():
             print()
 
         def forward(self, x):
-            # start_time = time.time()
             x = self.maxpool(x)
-            # end_time = time.time()
-            # print(f"maxpool - spend time : {round(end_time - start_time, 8)}s")
-
-            start_time = time.time()
             x = self.flatten(x)
-            end_time = time.time()
-            # print(f"flatten - spend time : {round(end_time - start_time, 8)}s")
-
-            start_time = time.time()
             x = self.hidden_layers(x)
-            end_time = time.time()
-            # print(f"hidden layer - spend time : {round(end_time - start_time, 8)}s")
-
-            start_time = time.time()
             x = self.classifier(x)
-            end_time = time.time()
-            # print(f"classifier - spend time : {round(end_time - start_time, 8)}s")
-
-            start_time = time.time()
             x = self.sigmoid(x)
-            end_time = time.time()
-            # print(f"sigmoid - spend time : {round(end_time - start_time, 4)}s")
             return x
 
     model = my_model()
