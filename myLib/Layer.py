@@ -39,6 +39,13 @@ class BaseLayer(myModule):
             # 이 레이어가 Sequential에 포함될 때
             return self._backward(*args, **kwargs)
 
+    def _set_tuple(self, param):
+        if isinstance(param, tuple):
+            return param
+        elif isinstance(param, int):
+            return tuple([param, param])
+        else:
+            raise TypeError
 
 class Sigmoid(BaseLayer):
     def __init__(self):
@@ -159,14 +166,6 @@ class MaxPool2d(BaseLayer):
         self.stride = self._set_tuple(stride)
         self.dilation = self._set_tuple(dilation)
 
-    def _set_tuple(self, param):
-        if isinstance(param, tuple):
-            return param
-        elif isinstance(param, int):
-            return tuple([param, param])
-        else:
-            raise TypeError
-
     def forward(self, x: myTensor) -> myTensor:
         # N C H_in W_in -> N C H_out W_out
         # C H_in W_in -> C H_out W_out
@@ -232,14 +231,80 @@ def _test_MaxFool2d():
     print('end MaxFool2d')
 
 class Conv2d(BaseLayer): # ☆☆☆☆
-    def __init__(self):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 dilation=1,
+                 bias=True):
         super(Conv2d, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = self._set_tuple(kernel_size)
+        self.stride = self._set_tuple(stride)
+        self.padding = self._set_tuple(padding)
+        self.dilation = self._set_tuple(dilation)
+
+        _k = np.sqrt(1 / (self.in_channels * self.kernel_size[0] * self.kernel_size[1]))
+
+        if bias:
+            #create bias
+            self.bias = myParameter(self.op.random.uniform(low=-_k, high=_k, size=self.out_channels))
+        else:
+            self.bias = None
+
+        self.weight = myParameter(self.op.random.uniform(low=-_k, high=_k,
+                                                         size=(self.in_channels,
+                                                               self.kernel_size[0],
+                                                               self.kernel_size[1],
+                                                               self.out_channels)))
 
     def forward(self, x: myTensor) -> myTensor:
-        ...
+        # N C_in H_in W_in => N C_out H_out W_out
+        N, C, self.H_in, self.W_in = x.shape
+
+        self.H_out = int((self.H_in + 2 * self.padding[0] - self.dilation[0] * (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        self.W_out = int((self.W_in + 2 * self.padding[1] - self.dilation[1] * (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+
+        padding_x = self.op.zeros((N, C, self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]))
+        padding_x[:, :, self.padding[0]:self.H_in - self.padding[0], self.padding[1]:self.W_in - self.padding[1]] = x
+
+        output = self.op.zeros((N, self.out_channels, self.H_out, self.W_out))
+
+        for h in range(self.H_out):
+            h_start = h * self.stride[0]
+            h_end = h * self.stride[0] + self.kernel_size[0]
+            for w in range(self.W_out):
+                w_start = h * self.stride[1]
+                w_end = h * self.stride[1] + self.kernel_size[1]
+                window = padding_x[:, :, h_start:h_end, w_start:w_end] # N, C_in, k_h, k_w
+                window = self.op.reshape(window, (N, self.in_channels, self.kernel_size[0], self.kernel_size[1], 1))
+                # weight : C_in, k_h, k_w, C_out => 1, C_in, k_h, k_w, C_out
+                # _out : N, C_in, k_h, k_w, C_out
+                _out = window * self.op.reshape(self.weight, (1, self.in_channels, self.kernel_size[0], self.kernel_size[1], self.out_channels))
+                _out = self.op.sum(_out, axis=(1, 2, 3)) # N, C_out
+
+                output[:, :, h, w] = _out
+
+        return output
+
 
     def _backward(self, *args ,**kwargs):
         ...
+
+def _test_Conv2d():
+    np.random.seed(1)
+    a = np.random.randint(low=1, high=10, size= 4*3*28*28)
+    a = a.reshape((4, 3, 28, 28))
+    # a = np.ones((4, 3, 28, 28))
+    tensor = myTensor(a)
+
+    m = Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=2, padding=0)
+    out = m(tensor)
+    back = m._backward(out)
+    print('end conv2d')
 
 
 class Dropout(BaseLayer): # ☆☆☆☆
@@ -300,6 +365,7 @@ def _test_Flatten():
 if __name__ == "__main__":
     _test_MaxFool2d()
     _test_Flatten()
+    _test_Conv2d()
 
 
 
