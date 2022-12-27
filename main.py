@@ -1,5 +1,17 @@
-import torch
-import torch.nn as nn
+def print_memory_usage():
+    print("used - ",cp._default_memory_pool.used_bytes() / 1e9, 'gb')
+    print("total - ",cp._default_memory_pool.total_bytes() / 1e9, 'gb')
+
+from myLib.Module import myModule, mySequential, myTensor
+from myLib.Layer import *
+from myLib.LossFunc import *
+from myLib.Optimizer import *
+
+import numpy as np
+import cupy as cp
+
+from functools import wraps
+
 from torchvision.datasets import MNIST
 import numpy as np
 
@@ -7,126 +19,103 @@ download_path = "./MNIST_Datset"
 train_dataset = MNIST(download_path, train=True, download=True)
 valid_dataset = MNIST(download_path, train=False, download=True)
 
-#git test
-#git test2
-class test_model(nn.Module):
-    def __init__(self):
-        super(test_model, self).__init__()
+def function_control(active):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if active:
+                func(*args, **kwargs)
+            return
+        return wrapper
+    return decorator
 
+test00_act = True
+test01_act = False
 
-        self.layer2 = nn.Sequential(
-            nn.ReLU(),
-            nn.ReLU(),
-            nn.ReLU()
-        )
+# @function_control(test00_act)
+def test00():
+    import time
 
-    def forward(self, x):
-        return self.layer2(x)
-
-
-class my_model(nn.Module):
+    class my_model(myModule):
         def __init__(self):
             super(my_model, self).__init__()
-            self.maxfool = nn.MaxPool2d(3, 2)
-            self.flatten = nn.Flatten()
-            self.hidden_layers = nn.Sequential(
-                nn.Linear(in_features=169, out_features=312, bias=True),
-                nn.ReLU(),
-                nn.Linear(in_features=312, out_features=128, bias=True),
-                nn.ReLU()
+            self.maxpool = MaxPool2d(3, 2)
+            self.flatten = Flatten()
+            self.hidden_layers = mySequential(
+                Linear(in_features=169, out_features=312, bias=True),
+                ReLU(),
+                Linear(in_features=312, out_features=128, bias=True),
+                ReLU()
             )
-            self.classifier = nn.Linear(in_features=128, out_features=10, bias=True)
-            self.sigmoid = nn.Sigmoid()
+            self.classifier = Linear(in_features=128, out_features=10, bias=True)
+            self.sigmoid = Sigmoid()
             print()
 
         def forward(self, x):
-            x = self.maxfool(x)
+            x = self.maxpool(x)
             x = self.flatten(x)
             x = self.hidden_layers(x)
             x = self.classifier(x)
             x = self.sigmoid(x)
             return x
 
-class Simple_CNN(nn.Module):
-    def __init__(self):
-        super(Simple_CNN, self).__init__()
-
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
-        )
-
-        self.fc1 = nn.Linear(4 * 4 * 128, 625, bias=True)
-        nn.init.xavier_uniform_(self.fc1.weight)
-
-        self.fc2 = nn.Linear(625, 10, bias=True)
-        nn.init.xavier_uniform_(self.fc2.weight)
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        x = self.fc2(x)
-
-        return x
-
-
-if __name__ == "__main__":
-    import time
-
-    # model = Simple_CNN()
     model = my_model()
-    model.to("cuda:0")
-    # criterion = torch.nn.CrossEntropyLoss()
-    criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model.to(device="cuda:0")
 
-    train_len = len(train_dataset)
+    optimizer = Adam(model.parameters(), lr=0.0001)
+    criterion = MSELoss()
+    epoch_size = 100
     batch_size = 144
-    epoch = 100
-    for epoch_i in range(epoch):
-        step_size = int(train_len / batch_size)
+    total_size = len(train_dataset)
+    for epoch_i in range(epoch_size):
         start_time = time.time()
+        step_size = int(total_size / batch_size)
         loss_sum = []
         for step_i in range(step_size):
-            data = train_dataset.data[step_i * batch_size: batch_size * (step_i+1)]
-            label = train_dataset.targets[step_i * batch_size: batch_size * (step_i+1)]
-            data = torch.unsqueeze(data, 0)
-            data = data.permute(1, 0, 2, 3)
-            data = data.type(torch.FloatTensor).to("cuda:0")
+            input_data = train_dataset.data[step_i*batch_size:(step_i+1)*batch_size].numpy().reshape(batch_size, 1, 28, 28)
+            targets = train_dataset.targets[step_i*batch_size:(step_i+1)*batch_size].numpy()
+            targets_one_hot = np.eye(10)[targets]
+
+            input_data = myTensor(input_data).to(device="cuda:0")
+            targets = myTensor(targets_one_hot).to(device="cuda:0")
 
             optimizer.zero_grad()
-            outputs = model(data)
+            pred = model(input_data)
 
-            target = torch.eye(10)[label].to("cuda:0")
-
-            loss = criterion(outputs, target)
+            loss = criterion(pred, targets)
             loss.backward()
-            loss_sum.append(loss.data)
             optimizer.step()
 
+            # print(step_i, loss)
+            loss_sum.append(loss.data)
         end_time = time.time()
         print(epoch_i, sum(loss_sum) / len(loss_sum), end_time - start_time)
+    print()
 
-        # with torch.no_grad():
-        #     valid_data = valid_dataset.data.view(len(valid_dataset), 1, 28, 28).float()
-        #     valid_label = valid_dataset.targets
-        #     torch.save()
-        #     prediction = model(valid_data)
-        #     torch.argmax(prediction, dim=1)
-        #     acc = (torch.argmax(prediction, dim=1) == valid_label).float().mean()
-        #     print('acc : ', acc.item())
+@function_control(test01_act)
+def test01():
+    # 연산자 테스트 함수
+    from myLib.Layer import operator_test_layer
+    class testModel(myModule):
+        def __init__(self):
+            super(testModel, self).__init__()
+
+            self.layer1 = mySequential(
+                operator_test_layer()
+            )
+
+        def forward(self, x):
+            x = self.layer1(x)
+            return x
+
+    a = np.array([[1,2], [4,6]], dtype=np.float32)
+    b = np.array([[2,1], [2,3]], dtype=np.float32)
+    a /= b
+    temp = myTensor(a)#.to('cuda:0')
+    # temp = temp[:, :, np.newaxis]
+    temp[0,0] = 3.5
+    test = testModel()#.to('cuda:0')
+    test(temp)
+
+test00()
+test01()
