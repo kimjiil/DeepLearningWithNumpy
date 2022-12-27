@@ -352,6 +352,7 @@ class FlattenLayer_np():
 
     def get_weight(self):
         return None
+
 def FlattenLayer_test():
     # N H W C
     x = np.random.randn(2, 4, 4, 2)
