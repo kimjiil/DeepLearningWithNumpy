@@ -40,81 +40,74 @@ def softmax(output):
     exp_sum = np.sum(exp_output, axis=1)
     return exp_output / exp_sum[:, np.newaxis]
 
-layers = [
-    # 28 x 28 x 1(Dim)
-    ConvLayer_np(input_dim=1, output_dim=16, kernel_size=5, stride=1, padding=2),
-    ReLULayer_np(),
-    # 28 x 28 x 8
-    MaxPoolLayer_np(kernel_size=2, stride=2, padding=0),
-    # 14 x 14 x 8
-    ConvLayer_np(input_dim=16, output_dim=32, kernel_size=3, stride=1, padding=0),
-    ReLULayer_np(),
-    # 12 x 12 x 8
-    MaxPoolLayer_np(kernel_size=2, stride=2, padding=0),
-    # 6 x 6 x 8
-    FlattenLayer_np(),
-    LinearLayer_np(input_dim=1152, output_dim=256),
-    ReLULayer_np(),
-    LinearLayer_np(input_dim=256, output_dim=10),
-    LogSoftMax_np()
-]
+def create_np_network():
+    model = [
+        # 28 x 28 x 1(Dim)
+        ConvLayer_np(input_dim=1, output_dim=16, kernel_size=5, stride=1, padding=2),
+        ReLULayer_np(),
+        # 28 x 28 x 8
+        MaxPoolLayer_np(kernel_size=2, stride=2, padding=0),
+        # 14 x 14 x 8
+        ConvLayer_np(input_dim=16, output_dim=32, kernel_size=3, stride=1, padding=0),
+        ReLULayer_np(),
+        # 12 x 12 x 8
+        MaxPoolLayer_np(kernel_size=2, stride=2, padding=0),
+        # 6 x 6 x 8
+        FlattenLayer_np(),
+        LinearLayer_np(input_dim=1152, output_dim=256),
+        ReLULayer_np(),
+        LinearLayer_np(input_dim=256, output_dim=10),
+        LogSoftMax_np()
+    ]
 
-layers_2 = [
-    MaxPoolLayer_np(kernel_size=3, stride=2),
-    FlattenLayer_np(),
-    LinearLayer_np(input_dim=169, output_dim=312),
-    ReLULayer_np(),
-    LinearLayer_np(input_dim=312, output_dim=128),
-    ReLULayer_np(),
-    LinearLayer_np(input_dim=128, output_dim=10),
-    LogSoftMax_np()
-]
+    return model
 
-optimizer = Adam(lr=0.0001)
-LossFunc = None
+def training(model):
+    optimizer = Adam(lr=0.0001)
 
-trainX = train_dataset.data.numpy()
-trainY = train_dataset.targets.numpy()
+    trainX = train_dataset.data.numpy()
+    trainY = train_dataset.targets.numpy()
 
-testX = valid_dataset.data.numpy()
-testY = valid_dataset.targets.numpy()
-#
-total_epoch = 1000
-batch_size = 144
+    testX = valid_dataset.data.numpy()
+    testY = valid_dataset.targets.numpy()
 
-trainX = trainX[:60000] / 255.0
-trainY = trainY[:60000]
+    total_epoch = 100
+    batch_size = 144
 
-testX = testX[:10000]
-testY = testY[:10000]
+    trainX = trainX[:] / 255.0
+    trainY = trainY[:]
 
-for epoch in range(total_epoch):
-    step = int(len(trainX) / batch_size)
-    loss_list = []
-    start_time = time.time()
-    for step_i in range(step):
-        X = trainX[step_i*batch_size:(step_i+1)*batch_size]
-        Y = trainY[step_i*batch_size:(step_i+1)*batch_size]
-        one_hot_Y = one_hot(Y)
-        X = X[:, :, :, np.newaxis]
-        output = _forward(X, layers_2)
+    testX = testX[:]
+    testY = testY[:]
 
-        back_propagation = output - one_hot_Y
+    for epoch in range(total_epoch):
+        step = int(len(trainX) / batch_size)
+        loss_list = []
+        start_time = time.time()
+        for step_i in range(step):
+            X = trainX[step_i*batch_size:(step_i+1)*batch_size]
+            Y = trainY[step_i*batch_size:(step_i+1)*batch_size]
+            one_hot_Y = one_hot(Y)
+            X = X[:, :, :, np.newaxis]
+            output = _forward(X, model)
 
-        # loss = MSE_Loss(output, one_hot_Y)
-        loss = Cross_Entropy_Loss(output, one_hot_Y)
+            back_propagation = output - one_hot_Y
 
-        loss_list.append(loss)
-        _backward(back_propagation, layers_2)
+            # loss = MSE_Loss(output, one_hot_Y)
+            loss = Cross_Entropy_Loss(output, one_hot_Y)
 
-        optimizer.update(layers=layers_2)
+            loss_list.append(loss)
+            _backward(back_propagation, model)
 
-    TEST_X = testX[:, :, :, np.newaxis] / 255.0
-    TEST_Y = one_hot(testY)
-    output = _forward(TEST_X, layers)
-    softmax_output = softmax(output)
-    acc = np.mean(testY == np.argmax(output, axis=1))
-    end_time = time.time()
-    print(f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc * 100.0}% / runtime:{end_time - start_time}s')
+            #optimizer step
+            optimizer.update(layers=model)
+
+        TEST_X = testX[:, :, :, np.newaxis] / 255.0
+        output = _forward(TEST_X, model)
+        acc = np.mean(testY == np.argmax(output, axis=1))
+        end_time = time.time()
+        print(f'epoch:{epoch} / loss:{np.mean(loss_list)} / Acc:{acc * 100.0}% / runtime:{end_time - start_time}s')
+
 if __name__ == "__main__":
-    pass
+    model = create_np_network()
+    training(model)
