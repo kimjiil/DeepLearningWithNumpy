@@ -29,7 +29,15 @@ python main_np.py
 
 ## DeepLearning Code with cupy, Numpy
 
-- Numpy, Numba, cupy 계산 시간 비교 
+- 
+
+
+
+- Numpy, Numba, cupy 계산 시간 비교
+
+```commandline
+python MatMul_caclTime.py
+```
 
 | Library | device | rumtime        |
 |---------|--------|----------------|
@@ -37,10 +45,6 @@ python main_np.py
 | Numba | GPU | 0.04s ~ 0.06s | 
 | cupy | GPU | 0.001s ~ 0.002s |
 
-
-```commandline
-python MatMul_caclTime.py
-```
 
 ### 파일 구성
 - [myLib](./myLib)
