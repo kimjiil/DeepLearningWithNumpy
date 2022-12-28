@@ -3,6 +3,8 @@ Numpy로 구현한 DeepLearning
 
 - 딥러닝 내부 알고리즘 및 학습 과정을 다시 공부하기 위해 작성중
 
+- [블로그 내용 정리](https://kimjiil.github.io/ai/ml%20study/DeepLearningWithNumpy/)
+
 ---
 
 ## [DeepLearning Code with Numpy](./Lib_np) 

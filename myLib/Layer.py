@@ -290,6 +290,15 @@ class Conv2d(BaseLayer): # ☆☆☆☆
 
         return output
 
+    def forward2(self, x: myTensor) -> myTensor:
+        N, C, self.H_in, self.W_in = x.shape
+
+        self.H_out = int((self.H_in + 2 * self.padding[0] - self.dilation[0] * (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
+        self.W_out = int((self.W_in + 2 * self.padding[1] - self.dilation[1] * (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+
+        mask = self.op.zeros((self.H_in * self.W_in, self.H_out * self.W_out))
+        output = None
+        return output
 
     def _backward(self, *args ,**kwargs):
         ...

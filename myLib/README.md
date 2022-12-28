@@ -78,7 +78,7 @@ for epoch_i in range(epoch_size):
 
 ## 구현 목록
 
-### [Module](./Module)
+### [Module](./Module.py)
 
 - Sequential
 - Parameter
@@ -90,7 +90,7 @@ for epoch_i in range(epoch_size):
 - ReLU
 - Linear
 - MaxPool2d
-- Conv2d
+- Conv2d (* backward 기능 미구현)
 - Flatten
 
 ### [Optimizer](./Optimizer.py)
