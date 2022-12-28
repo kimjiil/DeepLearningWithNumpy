@@ -5,10 +5,10 @@ Numpy로 구현한 DeepLearning
 
 ---
 
-## DeepLearning Code with Numpy
+## [DeepLearning Code with Numpy](./Lib_np) 
 
 ### 파일 구성
-- [Lib_np](./Lib_np) 
+- Lib_np 
   - Numpy로 작성한 deeplearning code
 - main_np.py 
   - Lib_np을 이용한 학습용 코드
@@ -27,7 +27,7 @@ python main_np.py
 
 --- 
 
-## DeepLearning Code with cupy, Numpy
+## [DeepLearning Code with cupy, Numpy](./myLib)
 
 - 기존 Numpy로 구성된 코드를 좀더 빠르게 GPU(cupy)에서 실행하기 위해서 작성함.
 - Pytorch로 딥러닝 코드를 작성하는 것과 유사하게 하기 위해
@@ -48,7 +48,7 @@ python MatMul_caclTime.py
 
 
 ### 파일 구성
-- [myLib](./myLib)
+- myLib
   - Numpy, cupy로 작성한 deeplearning code
 - main.py
   - myLib을 이용한 학습용 코드
