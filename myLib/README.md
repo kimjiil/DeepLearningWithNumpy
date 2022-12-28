@@ -75,3 +75,27 @@ for epoch_i in range(epoch_size):
         optimizer.step()
 ```
 
+
+## 구현 목록
+
+### [Module](./Module)
+
+- Sequential
+- Parameter
+- Tensor
+
+### [Layer](./Layer.py)
+
+- Sigmoid
+- ReLU
+- Linear
+- MaxPool2d
+- Conv2d
+- Flatten
+
+### [Optimizer](./Optimizer.py)
+
+- Adam
+
+## Refrence
+- https://github.com/pytorch/pytorch

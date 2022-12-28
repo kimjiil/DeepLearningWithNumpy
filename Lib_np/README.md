@@ -13,3 +13,7 @@
 
 - optimizer_np.py
   - Adam 
+
+
+## Refrence
+- https://github.com/SkalskiP/ILearnDeepLearning.py

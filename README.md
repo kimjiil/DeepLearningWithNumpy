@@ -29,7 +29,8 @@ python main_np.py
 
 ## DeepLearning Code with cupy, Numpy
 
-- 기존 Numpy로 구성된 코드를 좀더 빠르게 GPU(cupy)에서 실행하기 위해서 작성함. Pytorch로 딥러닝 코드를 작성하는 것과 유사하게 하기 위해
+- 기존 Numpy로 구성된 코드를 좀더 빠르게 GPU(cupy)에서 실행하기 위해서 작성함.
+- Pytorch로 딥러닝 코드를 작성하는 것과 유사하게 하기 위해
 Pytorch 함수의 이름과 기능을 비슷하게 작성중.
 
 
