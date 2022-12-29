@@ -80,11 +80,15 @@ for epoch_i in range(epoch_size):
 
 ### [Module](./Module.py)
 
+[[구현 상세]](https://kimjiil.github.io/ai/ml%20study/DeepLearningWithNumpy/#mymodule-class)
+
 - Sequential
 - Parameter
 - Tensor
 
 ### [Layer](./Layer.py)
+
+[[구현 상세]](https://kimjiil.github.io/ai/ml%20study/DeepLearningWithNumpy/#layer)
 
 - Sigmoid
 - ReLU
@@ -94,6 +98,8 @@ for epoch_i in range(epoch_size):
 - Flatten
 
 ### [Optimizer](./Optimizer.py)
+
+[[구현 상세]](https://kimjiil.github.io/ai/ml%20study/DeepLearningWithNumpy/#opimizer)
 
 - Adam
 

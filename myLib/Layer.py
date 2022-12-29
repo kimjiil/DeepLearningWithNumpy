@@ -153,10 +153,18 @@ class Linear(BaseLayer):
 
     def _backward(self, *args, **kwargs):
         self.weight.grad = self.op.matmul(self.op.transpose(self._backward_save), args[0])
-        self.bias.grad = self.op.sum(args[0], axis=0)
+        if self.bias:
+            self.bias.grad = self.op.sum(args[0], axis=0)
         _back = self.op.matmul(args[0], self.op.transpose(self.weight))
         return _back
 
+def _test_Linear():
+    a = np.random.randint(1, 10, size= (4, 16))
+    tensor = myTensor(a)
+    m = Linear(16, 32)
+    out = m(tensor)
+    back = m._backward(out)
+    print('end Linear')
 
 class MaxPool2d(BaseLayer):
     def __init__(self, kernel_size, stride=None, padding=0, dilation=1):
@@ -262,6 +270,7 @@ class Conv2d(BaseLayer): # ☆☆☆☆
                                                                self.out_channels)))
 
     def forward(self, x: myTensor) -> myTensor:
+        self._backward_save = x
         # N C_in H_in W_in => N C_out H_out W_out
         N, C, self.H_in, self.W_in = x.shape
 
@@ -277,8 +286,8 @@ class Conv2d(BaseLayer): # ☆☆☆☆
             h_start = h * self.stride[0]
             h_end = h * self.stride[0] + self.kernel_size[0]
             for w in range(self.W_out):
-                w_start = h * self.stride[1]
-                w_end = h * self.stride[1] + self.kernel_size[1]
+                w_start = w * self.stride[1]
+                w_end = w * self.stride[1] + self.kernel_size[1]
                 window = padding_x[:, :, h_start:h_end, w_start:w_end] # N, C_in, k_h, k_w
                 window = self.op.reshape(window, (N, self.in_channels, self.kernel_size[0], self.kernel_size[1], 1))
                 # weight : C_in, k_h, k_w, C_out => 1, C_in, k_h, k_w, C_out
@@ -290,23 +299,53 @@ class Conv2d(BaseLayer): # ☆☆☆☆
 
         return output
 
-    def forward2(self, x: myTensor) -> myTensor:
-        N, C, self.H_in, self.W_in = x.shape
+    def _backward(self, *args, **kwargs):
+        # self.bias.grad = None
 
-        self.H_out = int((self.H_in + 2 * self.padding[0] - self.dilation[0] * (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
-        self.W_out = int((self.W_in + 2 * self.padding[1] - self.dilation[1] * (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
+        # back in shape : N, C_out, H, W
+        # back out shape : N, C_in, H, W
+        _back_in = args[0]
 
-        mask = self.op.zeros((self.H_in * self.W_in, self.H_out * self.W_out))
-        output = None
-        return output
+        N, C, self.H_in, self.W_in = self._backward_save.shape
 
-    def _backward(self, *args ,**kwargs):
-        ...
+        self.weight.grad = self.op.zeros_like(self.weight)
+        _back_gradient = self.op.zeros_like(self._backward_save)
+
+        padding_x = self.op.zeros((N, C, self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]))
+        padding_x[:, :, self.padding[0]:self.H_in - self.padding[0], self.padding[1]:self.W_in - self.padding[1]] = self._backward_save
+
+        for h_i in range(self.H_out):
+            h_start = h_i * self.stride[0]
+            h_end = h_start + self.kernel_size[0]
+            for w_i in range(self.W_out):
+                w_start = w_i * self.stride[1]
+                w_end = w_start + self.kernel_size[1]
+
+                # padding_x shape 4, 3, 28, 28
+                # _back_in shape 4, 16, 13, 13
+                # weight shape 3, 3, 3, 16
+
+                # calculate weight gradient
+                window_x = padding_x[:, :, h_start:h_end, w_start:w_end].reshape((N, self.in_channels, self.kernel_size[0], self.kernel_size[1], 1))
+                _grad = self.op.transpose(_back_in[:, :, h_i, w_i].reshape((N, self.out_channels, 1, 1, 1)), axes=(0, 4, 2, 3, 1))
+                self.weight.grad += self.op.sum(window_x * _grad, axis=0)
+
+                # back_out shape 4, 3, 28, 28 => 4 3 3 3 / N Cin H W
+                # _back_in shape 4, 16, 13, 13 =>  4 16 1 1  / N Cout H W
+                # weight shape 3, 3, 3, 16 / Cin H W Cout
+
+                # _grad N Cin(1) H W Cout
+                # weight => 1 3 3 3 16 / N Cin H W Cout
+                window_backgradient = _grad * self.weight.reshape((1, *self.weight.shape))
+                _back_gradient[:, :, h_start:h_end, w_start:w_end] += self.op.sum(window_backgradient, axis=-1)
+
+        return _back_gradient
 
 def _test_Conv2d():
     np.random.seed(1)
     a = np.random.randint(low=1, high=10, size= 4*3*28*28)
     a = a.reshape((4, 3, 28, 28))
+    a = a.astype(np.float32)
     # a = np.ones((4, 3, 28, 28))
     tensor = myTensor(a)
 
@@ -372,6 +411,7 @@ def _test_Flatten():
     print(out)
 
 if __name__ == "__main__":
+    _test_Linear()
     _test_MaxFool2d()
     _test_Flatten()
     _test_Conv2d()

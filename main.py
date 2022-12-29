@@ -6,6 +6,8 @@ from myLib.Module import myModule, mySequential, myTensor
 from myLib.Layer import *
 from myLib.LossFunc import *
 from myLib.Optimizer import *
+import myLib
+
 
 import numpy as np
 import cupy as cp
@@ -117,5 +119,82 @@ def test01():
     test = testModel()#.to('cuda:0')
     test(temp)
 
-test00()
-test01()
+def test02():
+    class my_model(myModule):
+        def __init__(self):
+            super(my_model, self).__init__()
+
+            self.convlayers = mySequential(
+                Conv2d(in_channels=1, out_channels=3, kernel_size=3, stride=2, bias=False),
+                ReLU(),
+                Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=2, bias=False),
+                ReLU(),
+                MaxPool2d(kernel_size=2, stride=2)
+            )
+            self.flatten = Flatten()
+            self.hidden_layers = mySequential(
+                Linear(in_features=144, out_features=64, bias=True),
+                ReLU(),
+            )
+            self.classifier = Linear(in_features=64, out_features=10, bias=True)
+            self.sigmoid = Sigmoid()
+            print()
+
+        def forward(self, x):
+            x = self.convlayers(x)
+            x = self.flatten(x)
+            x = self.hidden_layers(x)
+            x = self.classifier(x)
+            x = self.sigmoid(x)
+            return x
+
+    model = my_model()
+    model.to(device="cuda:0")
+
+    optimizer = Adam(model.parameters(), lr=0.001)
+    criterion = MSELoss()
+    epoch_size = 100
+    batch_size = 144
+    total_size = len(train_dataset)
+    for epoch_i in range(epoch_size):
+        start_time = time.time()
+        step_size = int(total_size / batch_size)
+        loss_sum = []
+        # for step_i in range(step_size):
+        #     input_data = train_dataset.data[step_i * batch_size:(step_i + 1) * batch_size].numpy().reshape(batch_size,
+        #                                                                                                    1, 28, 28) /255.
+        #     targets = train_dataset.targets[step_i * batch_size:(step_i + 1) * batch_size].numpy()
+        #     targets_one_hot = np.eye(10)[targets]
+        #
+        #     input_data = myTensor(input_data).to(device="cuda:0")
+        #     targets = myTensor(targets_one_hot).to(device="cuda:0")
+        #
+        #     optimizer.zero_grad()
+        #     pred = model(input_data)
+        #
+        #     loss = criterion(pred, targets)
+        #     loss.backward()
+        #     optimizer.step()
+        #
+        #     # print(step_i, loss)
+        #     loss_sum.append(loss.data)
+        # end_time = time.time()
+        # print(epoch_i, "loss", sum(loss_sum) / len(loss_sum), "runtime", end_time - start_time)
+
+        step_size = int(len(valid_dataset.data) / batch_size)
+
+        for step_i in range(step_size):
+            input_data = valid_dataset.data[step_i * batch_size:(step_i + 1) * batch_size].numpy().reshape(batch_size,1, 28, 28) / 255.
+            targets = valid_dataset.targets[step_i * batch_size:(step_i + 1) * batch_size].numpy()
+
+            input_data = myTensor(input_data).to(device="cuda:0")
+            pred = model(input_data)
+            pred_label = myLib.argmax(pred, 1)
+            # correct = (pred_label == targets) #Tensor | np array =>
+            corrent = (targets == pred_label)
+
+            print()
+test02()
+
+# test00()
+# test01()

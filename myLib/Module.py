@@ -408,6 +408,9 @@ class myTensor(myModule):
         else:
             _new_data = operator(temp_data1, temp_data2)
 
+        if isinstance(_new_data, myTensor):
+            _new_data = _new_data.data
+
         _new = myTensor(_new_data)
         _new.grad_fn = f"{operator}"
         _new.op = temp_op
@@ -421,6 +424,8 @@ class myTensor(myModule):
         operator = args[0]
 
         _new_data = operator(self.data, *args[1:], **kwargs)
+        if isinstance(_new_data, myTensor):
+            _new_data = _new_data.data
         _new = myTensor(_new_data)
         _new.grad_fn = f"{operator}"
         _new.backward_fn = self.backward_prev
@@ -565,6 +570,9 @@ class myTensor(myModule):
 
     def log(self, *args, **kwargs):
         return self.unary_operator_function_call(self.op.log, *args, **kwargs)
+
+    def transpose(self, *args, **kwargs):
+        return self.unary_operator_function_call(self.op.transpose, *args, **kwargs)
 
 class myParameter(myTensor):
     def __init__(self, data):
