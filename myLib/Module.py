@@ -352,6 +352,12 @@ class myTensor(myModule):
     def __setslice__(self, i, j, sequence):
         ...
 
+    def numpy(self):
+        if isinstance(self.data, np.ndarray):
+            return self.data
+        elif isinstance(self.data, cp.ndarray):
+            return cp.asnumpy(self.data)
+
     #slicing call
     def __getitem__(self, item):
         # self.data = self.data[item]

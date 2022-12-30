@@ -277,8 +277,11 @@ class Conv2d(BaseLayer): # ☆☆☆☆
         self.H_out = int((self.H_in + 2 * self.padding[0] - self.dilation[0] * (self.kernel_size[0] - 1) - 1) / self.stride[0] + 1)
         self.W_out = int((self.W_in + 2 * self.padding[1] - self.dilation[1] * (self.kernel_size[1] - 1) - 1) / self.stride[1] + 1)
 
+        self.H_padding = self.H_in + 2 * self.padding[0]
+        self.W_padding = self.W_in + 2 * self.padding[1]
+
         padding_x = self.op.zeros((N, C, self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]))
-        padding_x[:, :, self.padding[0]:self.H_in - self.padding[0], self.padding[1]:self.W_in - self.padding[1]] = x
+        padding_x[:, :, self.padding[0]:self.H_padding - self.padding[0], self.padding[1]:self.W_padding - self.padding[1]] = x
 
         output = self.op.zeros((N, self.out_channels, self.H_out, self.W_out))
 
@@ -309,10 +312,12 @@ class Conv2d(BaseLayer): # ☆☆☆☆
         N, C, self.H_in, self.W_in = self._backward_save.shape
 
         self.weight.grad = self.op.zeros_like(self.weight)
-        _back_gradient = self.op.zeros_like(self._backward_save)
+        # _back_gradient = self.op.zeros_like(self._backward_save)
 
         padding_x = self.op.zeros((N, C, self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]))
-        padding_x[:, :, self.padding[0]:self.H_in - self.padding[0], self.padding[1]:self.W_in - self.padding[1]] = self._backward_save
+        _back_gradient = self.op.zeros_like(padding_x)
+
+        padding_x[:, :, self.padding[0]:self.H_padding - self.padding[0], self.padding[1]:self.W_padding - self.padding[1]] = self._backward_save
 
         for h_i in range(self.H_out):
             h_start = h_i * self.stride[0]
@@ -339,7 +344,7 @@ class Conv2d(BaseLayer): # ☆☆☆☆
                 window_backgradient = _grad * self.weight.reshape((1, *self.weight.shape))
                 _back_gradient[:, :, h_start:h_end, w_start:w_end] += self.op.sum(window_backgradient, axis=-1)
 
-        return _back_gradient
+        return _back_gradient[:, :, self.padding[0]:self.H_padding - self.padding[0], self.padding[1]:self.W_padding - self.padding[1]]
 
 def _test_Conv2d():
     np.random.seed(1)

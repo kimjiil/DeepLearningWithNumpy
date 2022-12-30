@@ -125,20 +125,21 @@ def test02():
             super(my_model, self).__init__()
 
             self.convlayers = mySequential(
-                Conv2d(in_channels=1, out_channels=3, kernel_size=3, stride=2, bias=False),
+                Conv2d(in_channels=1, out_channels=16, kernel_size=5, stride=1, padding=2, bias=False),
                 ReLU(),
-                Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=2, bias=False),
+                MaxPool2d(kernel_size=2, stride=2, padding=0),
+                Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=0, bias=False),
                 ReLU(),
-                MaxPool2d(kernel_size=2, stride=2)
+                MaxPool2d(kernel_size=2, stride=2, padding=0)
             )
             self.flatten = Flatten()
             self.hidden_layers = mySequential(
-                Linear(in_features=144, out_features=64, bias=True),
+                Linear(in_features=1152, out_features=256, bias=True),
                 ReLU(),
             )
-            self.classifier = Linear(in_features=64, out_features=10, bias=True)
+            self.classifier = Linear(in_features=256, out_features=10, bias=True)
             self.sigmoid = Sigmoid()
-            print()
+
 
         def forward(self, x):
             x = self.convlayers(x)
@@ -160,40 +161,43 @@ def test02():
         start_time = time.time()
         step_size = int(total_size / batch_size)
         loss_sum = []
-        # for step_i in range(step_size):
-        #     input_data = train_dataset.data[step_i * batch_size:(step_i + 1) * batch_size].numpy().reshape(batch_size,
-        #                                                                                                    1, 28, 28) /255.
-        #     targets = train_dataset.targets[step_i * batch_size:(step_i + 1) * batch_size].numpy()
-        #     targets_one_hot = np.eye(10)[targets]
-        #
-        #     input_data = myTensor(input_data).to(device="cuda:0")
-        #     targets = myTensor(targets_one_hot).to(device="cuda:0")
-        #
-        #     optimizer.zero_grad()
-        #     pred = model(input_data)
-        #
-        #     loss = criterion(pred, targets)
-        #     loss.backward()
-        #     optimizer.step()
-        #
-        #     # print(step_i, loss)
-        #     loss_sum.append(loss.data)
-        # end_time = time.time()
-        # print(epoch_i, "loss", sum(loss_sum) / len(loss_sum), "runtime", end_time - start_time)
+        for step_i in range(step_size):
+            input_data = train_dataset.data[step_i * batch_size:(step_i + 1) * batch_size].numpy().reshape(batch_size,
+                                                                                                           1, 28, 28) /255.
+            targets = train_dataset.targets[step_i * batch_size:(step_i + 1) * batch_size].numpy()
+            targets_one_hot = np.eye(10)[targets]
+
+            input_data = myTensor(input_data).to(device="cuda:0")
+            targets = myTensor(targets_one_hot).to(device="cuda:0")
+
+            optimizer.zero_grad()
+            pred = model(input_data)
+
+            loss = criterion(pred, targets)
+            loss.backward()
+            optimizer.step()
+
+            # print(step_i, loss)
+            loss_sum.append(loss.data)
+        end_time = time.time()
+        print(epoch_i, "loss", sum(loss_sum) / len(loss_sum), "runtime", end_time - start_time)
 
         step_size = int(len(valid_dataset.data) / batch_size)
 
+        acc_list = []
         for step_i in range(step_size):
             input_data = valid_dataset.data[step_i * batch_size:(step_i + 1) * batch_size].numpy().reshape(batch_size,1, 28, 28) / 255.
             targets = valid_dataset.targets[step_i * batch_size:(step_i + 1) * batch_size].numpy()
 
             input_data = myTensor(input_data).to(device="cuda:0")
+            targets = myTensor(targets).to(device="cuda:0")
             pred = model(input_data)
             pred_label = myLib.argmax(pred, 1)
-            # correct = (pred_label == targets) #Tensor | np array =>
-            corrent = (targets == pred_label)
 
-            print()
+            correct = (targets == pred_label).numpy()
+            acc_list.extend(correct)
+
+        print(f"accuracy {np.mean(acc_list)}")
 test02()
 
 # test00()
