@@ -7,28 +7,6 @@ Numpy로 구현한 DeepLearning
 
 ---
 
-## [DeepLearning Code with Numpy](./Lib_np) 
-
-### 파일 구성
-- Lib_np 
-  - Numpy로 작성한 deeplearning code
-- main_np.py 
-  - Lib_np을 이용한 학습용 코드
-
-### Train
-```commandline
-python main_np.py
-```
-
-- [[jupyter notebook]](https://github.com/kimjiil/DeepLearningWithNumpy/blob/main/notebooks/DeeplearningWithNumpy_Training_Test.ipynb)
-  - MINST Dataset - Accuracy 95.81%
-  - train data size - 60,000 / valid data size - 10,000 / batch_size - 144 / 1 epoch runtime - 2hour
-
-### Refrence
-- https://github.com/SkalskiP/ILearnDeepLearning.py
-
---- 
-
 ## [DeepLearning Code with cupy, Numpy](./myLib)
 
 - 기존 Numpy로 구성된 코드를 좀더 빠르게 GPU(cupy)에서 실행하기 위해서 작성함.
@@ -59,3 +37,34 @@ python MatMul_caclTime.py
 ```commandline
 python main.py
 ```
+
+- [[jupyter notebook]](https://github.com/kimjiil/DeepLearningWithNumpy/blob/main/notebooks/DeeplearningWithNumpy_Training_Test.ipynb)
+  - MINST Dataset - Accuracy 99.82%
+  - train data size - 60,000 / valid data size - 10,000 / batch_size - 144 / 1 epoch runtime - about 210s
+
+---
+
+## [DeepLearning Code with Numpy](./Lib_np)
+
+- Numpy로만 작성한 초기 테스트 코드
+
+### 파일 구성
+- Lib_np 
+  - Numpy로 작성한 deeplearning code
+- main_np.py 
+  - Lib_np을 이용한 학습용 코드
+
+### Train
+```commandline
+python main_np.py
+```
+
+- [[jupyter notebook]](https://github.com/kimjiil/DeepLearningWithNumpy/blob/main/notebooks/DeeplearningWithNumpy_Training_Test.ipynb)
+  - MINST Dataset - Accuracy 95.81%
+  - train data size - 60,000 / valid data size - 10,000 / batch_size - 144 / 1 epoch runtime - 2hour
+
+### Refrence
+- https://github.com/SkalskiP/ILearnDeepLearning.py
+
+--- 
+

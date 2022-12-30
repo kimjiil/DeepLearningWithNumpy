@@ -296,7 +296,10 @@ class Conv2d(BaseLayer): # ☆☆☆☆
                 # weight : C_in, k_h, k_w, C_out => 1, C_in, k_h, k_w, C_out
                 # _out : N, C_in, k_h, k_w, C_out
                 _out = window * self.op.reshape(self.weight, (1, self.in_channels, self.kernel_size[0], self.kernel_size[1], self.out_channels))
-                _out = self.op.sum(_out, axis=(1, 2, 3)) # N, C_out
+                if self.bias:
+                    _out = self.op.sum(_out, axis=(1, 2, 3)) + self.bias
+                else:
+                    _out = self.op.sum(_out, axis=(1, 2, 3))
 
                 output[:, :, h, w] = _out
 
@@ -312,7 +315,8 @@ class Conv2d(BaseLayer): # ☆☆☆☆
         N, C, self.H_in, self.W_in = self._backward_save.shape
 
         self.weight.grad = self.op.zeros_like(self.weight)
-        # _back_gradient = self.op.zeros_like(self._backward_save)
+        if self.bias:
+            self.bias.grad = self.op.zeros_like(self.bias)
 
         padding_x = self.op.zeros((N, C, self.H_in + 2 * self.padding[0], self.W_in + 2 * self.padding[1]))
         _back_gradient = self.op.zeros_like(padding_x)
@@ -335,6 +339,8 @@ class Conv2d(BaseLayer): # ☆☆☆☆
                 _grad = self.op.transpose(_back_in[:, :, h_i, w_i].reshape((N, self.out_channels, 1, 1, 1)), axes=(0, 4, 2, 3, 1))
                 self.weight.grad += self.op.sum(window_x * _grad, axis=0)
 
+                if self.bias:
+                    self.bias.grad += self.op.sum(_back_in[:, :, h_i, w_i], axis=0)
                 # back_out shape 4, 3, 28, 28 => 4 3 3 3 / N Cin H W
                 # _back_in shape 4, 16, 13, 13 =>  4 16 1 1  / N Cout H W
                 # weight shape 3, 3, 3, 16 / Cin H W Cout

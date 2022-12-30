@@ -15,6 +15,10 @@ a = myTensor(np_data_a).to(device='cuda:0')
 b = myTensor(np_data_b).to(device='cuda:0')
 
 c = a + b
+
+# tensor to numpy
+a_np = a.numpy()
+b_np = b.numpy()
 ```
 
 ### create Model & training
@@ -94,14 +98,19 @@ for epoch_i in range(epoch_size):
 - ReLU
 - Linear
 - MaxPool2d
-- Conv2d (* backward 기능 미구현)
+- Conv2d 
 - Flatten
+- BatchNorm2d (* 미구현)
+- AvgPool (* 미구현)
+- Dropout (* 미구현)
 
 ### [Optimizer](./Optimizer.py)
 
 [[구현 상세]](https://kimjiil.github.io/ai/ml%20study/DeepLearningWithNumpy/#opimizer)
 
 - Adam
+- AdamW (* 미구현)
+- Stochatic Gradient Descent (* 미구현)
 
 ## Refrence
 - https://github.com/pytorch/pytorch
