@@ -38,7 +38,7 @@ python MatMul_caclTime.py
 python main.py
 ```
 
-- [[jupyter notebook]](https://github.com/kimjiil/DeepLearningWithNumpy/blob/main/notebooks/myDeepLearning%Code.ipynb)
+- [[jupyter notebook]](https://github.com/kimjiil/DeepLearningWithNumpy/blob/main/notebooks/myDeepLearning%20Code.ipynb)
   - MINST Dataset - Accuracy 99.82%
   - train data size - 60,000 / valid data size - 10,000 / batch_size - 144 / 1 epoch runtime - about 210s
 
