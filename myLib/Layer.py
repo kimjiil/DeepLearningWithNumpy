@@ -377,15 +377,48 @@ class Dropout(BaseLayer): # ☆☆☆☆
         ...
 
 class BatchNorm2d(BaseLayer): # ☆☆☆☆☆
-    def __init__(self):
+    def __init__(self,
+                 num_features,
+                 eps=1e-05,
+                 momentum=0.1,
+                 affine=True,
+                 track_running_state=True,
+                 device=None,
+                 dtype=None):
         super(BatchNorm2d, self).__init__()
 
+        self._gamma = myParameter(self.op.ones(num_features, dtype=self.op.float32))
+        self._beta = myParameter(self.op.zeros_like(self._gamma))
+
+        self.eps = eps
+
     def forward(self, x: myTensor) -> myTensor:
-        ...
+        # x: N C H W or N C
+        # N, C, H, W = x.shape
+        _reshape = [d if i == 1 else 1 for i, d in enumerate(x.shape)]
+
+        _mu_batch = self.op.mean(x, axis=0)
+        _sigma_batch = self.op.mean((x - _mu_batch) ** 2, axis=0)
+        x_hat = (x - _mu_batch) / self.op.sqrt(_sigma_batch + self.eps)
+
+        out = x_hat * self._gamma.reshape(_reshape) + self._beta.reshape(_reshape)
+        return out
 
     def _backward(self, *args, **kwargs):
         ...
 
+def _test_Batchnorm2d():
+    np.random.seed(1)
+    a = np.random.randint(low=1, high=10, size=4 * 3 * 28 * 28)
+    a = a.reshape((4, 3, 28, 28))
+    a = a.astype(np.float32)
+    # a = np.ones((4, 3, 28, 28))
+    tensor = myTensor(a)
+
+    m = BatchNorm2d(3)
+    out = m(tensor)
+    back = m._backward(out)
+    print("end batchnorm2d")
 
 class Flatten(BaseLayer): # ☆
     def __init__(self, start_dim=1, end_dim=-1):
@@ -426,6 +459,7 @@ if __name__ == "__main__":
     _test_MaxFool2d()
     _test_Flatten()
     _test_Conv2d()
+    _test_Batchnorm2d()
 
 
 

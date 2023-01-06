@@ -171,6 +171,13 @@ class myModule:
         self._modules[key] = module
 
 class op:
+    def __getattr__(self, item):
+        # class에 없는 attribute를 호출할 경우
+        _att = getattr(self._op, item)
+        if callable(_att):
+            raise BaseException("function call error")
+        return _att
+
     def __init__(self):
         self._op = np #defualt
         self.random = self._random(self._op.random)
@@ -200,6 +207,10 @@ class op:
             temp_op = self._op
 
         new_temp = operator(temp_x1, *args[1:], **kwargs)
+
+        if isinstance(new_temp, myTensor):
+            new_temp = new_temp.data
+
         new = myTensor(new_temp)
         new.grad_fn = f"<{operator}>"
         new.backward_fn = temp_prev
@@ -228,6 +239,10 @@ class op:
             temp_x2 = args[1]
 
         new_temp = operator(temp_x1, temp_x2, *args[2:], **kwargs)
+
+        if isinstance(new_temp, myTensor):
+            new_temp = new_temp.data
+
         new = myTensor(new_temp)
         new.grad_fn = f"<{operator}>"
         new.backward_fn = temp_prev
@@ -243,6 +258,12 @@ class op:
 
     def argmax(self, *args, **kwargs):
         return self.unary_function_wrapper(self._op.argmax, *args, **kwargs)
+
+    def ones(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.ones, *args, **kwargs)
+
+    def ones_like(self, *args, **kwargs):
+        return self.unary_function_wrapper(self._op.ones_like, *args, **kwargs)
 
     def zeros(self, *args, **kwargs):
         return self.unary_function_wrapper(self._op.zeros, *args, **kwargs)
@@ -296,6 +317,8 @@ class op:
 class myTensor(myModule):
     def __init__(self, data):
         super(myTensor, self).__init__()
+        if isinstance(data, myTensor):
+            data = data.data
         self.data = data
         self.shape = self.data.shape
         self.grad_fn = None
